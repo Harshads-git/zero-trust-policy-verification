@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Zero Trust Policy Verification Engine (ZTPVE) - AWS Free Tier Stack'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'production'
+    Description: 'Target deployment environment'
+
+Resources:
+  # 1. DynamoDB Policies Table (Free Tier: 5 RCU / 5 WCU provisioned)
+  PoliciesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'zero_trust_policies'
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      AttributeDefinitions:
+        - AttributeName: 'policy_id'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'policy_id'
+          KeyType: 'HASH'
+
+  # 2. DynamoDB Audit Reports Table
+  ReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'zero_trust_audit_reports'
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      AttributeDefinitions:
+        - AttributeName: 'report_id'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'report_id'
+          KeyType: 'HASH'
+
+  # 3. CloudWatch Log Group for Audit
+  AuditLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '/aws/ztpve/api-audit'
+      RetentionInDays: 14
+
+  # 4. IAM Least-Privilege Execution Role
+  BackendExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'ztpve_backend_execution_role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'ZTPVELeastPrivilege'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:DeleteItem'
+                Resource:
+                  - !GetAtt PoliciesTable.Arn
+                  - !GetAtt ReportsTable.Arn
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !GetAtt AuditLogGroup.Arn
+
+Outputs:
+  PoliciesTableName:
+    Value: !Ref PoliciesTable
+    Description: 'DynamoDB Policy table name'
+  ReportsTableName:
+    Value: !Ref ReportsTable
+    Description: 'DynamoDB Audit Reports table name'
+  BackendRoleArn:
+    Value: !GetAtt BackendExecutionRole.Arn
+    Description: 'IAM Role ARN for backend'
