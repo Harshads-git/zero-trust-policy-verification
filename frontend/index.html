@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zero Trust Policy Verification Engine (ZTPVE)</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Cytoscape.js for Directed Automaton Graph Visualization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Zero Trust Policy Verification Engine</h1>
+      <span class="badge badge-toc">Theory of Computation</span>
+      <span class="badge badge-cloud">AWS Free Tier</span>
+    </div>
+    <div class="system-status">
+      <span><span class="status-dot"></span>Core Engine: <strong id="backend-status-indicator">Checking...</strong></span>
+      <span>B.Tech IT Capstone</span>
+    </div>
+  </header>
+
+  <!-- Section Tabs -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-verify">Verification Workspace</button>
+    <button class="tab-btn" data-tab="tab-history">Audit & History</button>
+    <button class="tab-btn" data-tab="tab-theory">Formal Automata Model</button>
+    <button class="tab-btn" data-tab="tab-benchmark">Empirical Benchmarking</button>
+    <button class="tab-btn" data-tab="tab-cloud">AWS Cloud Architecture</button>
+  </nav>
+
+  <main class="main-container">
+
+    <!-- TAB 1: VERIFICATION WORKSPACE -->
+    <section id="tab-verify" class="tab-content active">
+      <!-- High-level Metric Ribbon -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-label">Verification Outcome</div>
+          <div id="metric-status" class="metric-val val-valid">READY</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Violations Detected</div>
+          <div id="metric-violations" class="metric-val">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Automaton States |Q|</div>
+          <div id="metric-states" class="metric-val">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Transitions |&delta;|</div>
+          <div id="metric-transitions" class="metric-val">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Formal Check Latency</div>
+          <div id="metric-time" class="metric-val">0.00 ms</div>
+        </div>
+      </div>
+
+      <!-- Main Workspace Grid -->
+      <div class="workspace-grid">
+        <!-- Left Column: Policy Editor -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Policy Specification (JSON)</h2>
+            <div style="display:flex; gap: 6px;">
+              <button class="btn" onclick="document.getElementById('policy-file-input').click()">Upload</button>
+              <input type="file" id="policy-file-input" style="display:none;" accept=".json" onchange="handleFileUpload(this)">
+              <button class="btn" onclick="downloadCurrentReport()">Export Report</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="editor-controls">
+              <select id="sample-policy-select" style="flex: 1;">
+                <option value="">Loading sample templates...</option>
+              </select>
+            </div>
+            <textarea id="policy-editor" class="code-editor" spellcheck="false" placeholder="Enter Zero Trust Policy JSON here..."></textarea>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <button id="btn-verify" class="btn btn-primary" style="flex: 1;" onclick="verifyCurrentPolicy()">Run Formal Verification</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: FSM Visualizer & Violation Explanations -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Automaton Graph Visualization & State Inspector</h2>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn" onclick="resetGraphZoom()">Reset View</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Cytoscape Graph Container -->
+            <div id="cy-container"></div>
+            
+            <div class="graph-legend">
+              <div class="legend-item"><span class="legend-color" style="background:#0369a1;"></span> Initial (q0)</div>
+              <div class="legend-item"><span class="legend-color" style="background:#14532d;"></span> ACCESS_GRANTED</div>
+              <div class="legend-item"><span class="legend-color" style="background:#7f1d1d;"></span> ACCESS_DENIED</div>
+              <div class="legend-item"><span class="legend-color" style="background:#ef4444;"></span> Violation Path / Trap</div>
+              <div class="legend-item" id="node-inspector-details" style="margin-left: auto; color: #38bdf8;">
+                Click any state node to inspect formal degrees.
+              </div>
+            </div>
+
+            <!-- Violations Breakdown -->
+            <div class="violations-container">
+              <h3 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Verification Report & Counterexamples</h3>
+              <div id="violations-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: AUDIT & HISTORY -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>Verification Run Audit Log</h2>
+          <button class="btn" onclick="loadVerificationHistory()">Refresh History</button>
+        </div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Policy Name</th>
+                <th>Outcome</th>
+                <th>Violations</th>
+                <th>FSM Dimensions</th>
+                <th>Execution Time</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr><td colspan="6" style="text-align: center; color: #64748b;">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: FORMAL TOC MODEL -->
+    <section id="tab-theory" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>Theory of Computation Mathematical Specification</h2>
+        </div>
+        <div class="card-body">
+          <p style="color: #cbd5e1; margin-bottom: 16px;">
+            The verification engine models zero trust policies as a Deterministic Finite Automaton (DFA) augmented with predicate guards:
+          </p>
+          <div class="formal-math">
+            M = (Q, &Sigma;, &delta;, q<sub>0</sub>, F)
+          </div>
+          <ul style="margin-left: 20px; color: #94a3b8; margin-bottom: 16px; font-size: 13px;">
+            <li><strong>Q</strong>: Set of finite operational states representing subject security postures.</li>
+            <li><strong>&Sigma;</strong>: Input alphabet representing authentication, authorization, and environmental context events.</li>
+            <li><strong>&delta; : Q &times; &Sigma; &rarr; Q</strong>: Transition function defining valid state changes under guard conditions.</li>
+            <li><strong>q<sub>0</sub></strong>: Start state (START).</li>
+            <li><strong>F &sube; Q</strong>: Terminal states {ACCESS_GRANTED, ACCESS_DENIED, REVOKED, SESSION_EXPIRED}.</li>
+          </ul>
+
+          <div class="invariant-item">
+            <h3>1. Authentication Precedence Invariant</h3>
+            <p>Every simple path from q<sub>0</sub> to ACCESS_GRANTED must traverse an explicit identity authentication state.</p>
+            <div class="formal-math">&forall; path P = (q<sub>0</sub>, ..., q<sub>k</sub> = ACCESS_GRANTED) : &exist; q<sub>i</sub> &isin; P s.t. q<sub>i</sub> &isin; {AUTHENTICATED, IDENTITY_VERIFIED}</div>
+          </div>
+
+          <div class="invariant-item">
+            <h3>2. Device Posture Trust Invariant</h3>
+            <p>Prior to entering ACCESS_GRANTED or AUTHORIZED, endpoint compliance and hardware integrity must be validated.</p>
+            <div class="formal-math">&forall; path P leading to ACCESS_GRANTED : &exist; q<sub>j</sub> &isin; P s.t. q<sub>j</sub> = DEVICE_VERIFIED &or; Condition(q<sub>j-1</sub>, q<sub>j</sub>) entails DevicePosture</div>
+          </div>
+
+          <div class="invariant-item">
+            <h3>3. Session Revocability & Expiry Invariant</h3>
+            <p>To eliminate perpetual access (zombie grants), ACCESS_GRANTED must have forward reachability to termination states.</p>
+            <div class="formal-math">Reachable(ACCESS_GRANTED) &cap; {SESSION_EXPIRED, REVOKED} &ne; &empty;</div>
+          </div>
+
+          <div class="invariant-item">
+            <h3>4. Absence of Dead/Trap States</h3>
+            <p>Non-terminal states must not trap access requests into infinite non-responsive states.</p>
+            <div class="formal-math">&forall; q &isin; Q \ F, &exist; f &isin; F : Reachable(q, f)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: EMPIRICAL BENCHMARK -->
+    <section id="tab-benchmark" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>Empirical Verification Scalability Benchmark</h2>
+          <button id="btn-run-benchmark" class="btn btn-primary" onclick="runEmpiricalBenchmark()">Execute Benchmark Suite</button>
+        </div>
+        <div class="card-body">
+          <p style="color: #cbd5e1; margin-bottom: 12px;">
+            Generates synthetic Zero Trust access control workflows of scaling sizes (N = 10, 50, 100, 250, 500 rules)
+            and measures formal verification latency, graph traversal efficiency, and throughput.
+          </p>
+          <div id="benchmark-results-container">
+            <p style="color: #64748b;">Click "Execute Benchmark Suite" above to run live measurements.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: AWS CLOUD ARCHITECTURE -->
+    <section id="tab-cloud" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>AWS Free Tier Cloud Deployment Architecture</h2>
+        </div>
+        <div class="card-body">
+          <p style="color: #cbd5e1; margin-bottom: 16px;">
+            Designed to run entirely within the <strong>AWS Free Tier</strong> ($0/month hosting cost) using standard cloud patterns:
+          </p>
+          <div style="background-color: #0b0f19; border: 1px solid var(--border-color); border-radius: 4px; padding: 16px; font-family: var(--font-mono); font-size: 12px; color: #38bdf8; margin-bottom: 16px;">
+[Client Browser]
+       |
+       v (HTTPS / Port 443)
+[Amazon S3 Static Website / CloudFront (Free Tier 1TB)]
+       |
+       +---> API Requests (JSON)
+       |
+       v
+[Amazon API Gateway (Free Tier 1M calls/mo) OR EC2 t2.micro (750 hrs/mo)]
+       |
+       v
+[FastAPI Verification Engine]
+       |
+       +---> [Amazon DynamoDB] (Free Tier 25 RCU / 25 WCU, 25GB Storage)
+       |
+       +---> [Amazon CloudWatch Logs] (Free Tier 5GB log ingestion)
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>AWS Service</th>
+                <th>Role in Architecture</th>
+                <th>Free Tier Allowance</th>
+                <th>Cost Impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Amazon DynamoDB</strong></td>
+                <td>Stores access control policies and verification reports</td>
+                <td>25 RCU / 25 WCU, 25 GB storage</td>
+                <td>$0.00 / month</td>
+              </tr>
+              <tr>
+                <td><strong>AWS Lambda / EC2 t2.micro</strong></td>
+                <td>Runs FastAPI Python formal verification engine</td>
+                <td>1,000,000 requests/mo (Lambda) or 750 hrs/mo (EC2)</td>
+                <td>$0.00 / month</td>
+              </tr>
+              <tr>
+                <td><strong>Amazon S3</strong></td>
+                <td>Hosts frontend dashboard and static assets</td>
+                <td>5 GB standard storage, 20,000 GET requests</td>
+                <td>$0.00 / month</td>
+              </tr>
+              <tr>
+                <td><strong>Amazon CloudWatch</strong></td>
+                <td>Audit trail monitoring and security alarm telemetry</td>
+                <td>5 GB log data ingestion & 10 custom metrics</td>
+                <td>$0.00 / month</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/static/js/visualizer.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
