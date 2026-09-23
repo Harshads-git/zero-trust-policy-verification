@@ -1,0 +1,68 @@
+{
+  "policy_id": "pol_invalid_rule_conflict",
+  "policy_name": "Flawed Policy: Non-Deterministic Rule Conflict",
+  "description": "Theory of Computation flaw: Contains contradictory transitions for identical state and conditions.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "conf_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "tls"
+    },
+    {
+      "rule_id": "conf_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "login",
+      "condition": "creds"
+    },
+    {
+      "rule_id": "conf_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "mfa",
+      "condition": "pass"
+    },
+    {
+      "rule_id": "conf_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "device",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "conf_05a",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "evaluate_request",
+      "condition": "tier_standard",
+      "description": "Rule A grants authorization"
+    },
+    {
+      "rule_id": "conf_05b",
+      "source": "DEVICE_VERIFIED",
+      "target": "ACCESS_DENIED",
+      "action": "evaluate_request",
+      "condition": "tier_standard",
+      "description": "Rule B denies access under identical condition (Race Condition / Conflict)"
+    },
+    {
+      "rule_id": "conf_06",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "conf_07",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "timeout",
+      "condition": "ttl"
+    }
+  ]
+}

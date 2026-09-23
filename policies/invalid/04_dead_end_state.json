@@ -1,0 +1,67 @@
+{
+  "policy_id": "pol_invalid_dead_end_state",
+  "policy_name": "Flawed Policy: Dead-End State Trap",
+  "description": "Theory of Computation flaw: Traps access request in PENDING_MANUAL_REVIEW with no path to terminal state.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "dead_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "tls"
+    },
+    {
+      "rule_id": "dead_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "login",
+      "condition": "creds"
+    },
+    {
+      "rule_id": "dead_03",
+      "source": "AUTHENTICATED",
+      "target": "PENDING_MANUAL_REVIEW",
+      "action": "flag_for_review",
+      "condition": "unusual_geo_location",
+      "description": "Directs to review state, but fails to define resolution transitions!"
+    },
+    {
+      "rule_id": "dead_04",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "mfa",
+      "condition": "standard_login"
+    },
+    {
+      "rule_id": "dead_05",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "device",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "dead_06",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "role",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "dead_07",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "dead_08",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "timeout",
+      "condition": "ttl"
+    }
+  ]
+}

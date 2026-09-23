@@ -1,0 +1,97 @@
+{
+  "policy_id": "pol_valid_standard_employee",
+  "policy_name": "Standard Employee Enterprise Zero Trust Access",
+  "description": "Standard corporate resource access adhering to strict NIST SP 800-207 Zero Trust invariants.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "r_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "initiate_connection",
+      "condition": "tls_established",
+      "description": "Client establishes secure TLS session with Policy Enforcement Point"
+    },
+    {
+      "rule_id": "r_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "submit_primary_credentials",
+      "condition": "valid_user_credentials",
+      "description": "Validates primary password / SSO credentials"
+    },
+    {
+      "rule_id": "r_03",
+      "source": "UNAUTHENTICATED",
+      "target": "ACCESS_DENIED",
+      "action": "submit_primary_credentials",
+      "condition": "invalid_credentials",
+      "description": "Rejects connection on bad credentials"
+    },
+    {
+      "rule_id": "r_04",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "verify_mfa",
+      "condition": "totp_fido2_verified",
+      "description": "Enforces second-factor cryptographic challenge"
+    },
+    {
+      "rule_id": "r_05",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "inspect_device_posture",
+      "condition": "edr_active_and_tpm_valid",
+      "description": "Continuous device health, disk encryption, and compliance check"
+    },
+    {
+      "rule_id": "r_06",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "evaluate_abac_policy",
+      "condition": "role_permission_granted",
+      "description": "Attribute-based access control evaluation for target microservice"
+    },
+    {
+      "rule_id": "r_07",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "issue_scoped_jwt",
+      "condition": "ephemeral_token_signed",
+      "description": "Issues short-lived credential allowing resource communication"
+    },
+    {
+      "rule_id": "r_08",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "session_timer_elapsed",
+      "condition": "ttl_exceeded",
+      "description": "Forces re-authentication when token lifetime expires"
+    },
+    {
+      "rule_id": "r_09",
+      "source": "ACCESS_GRANTED",
+      "target": "REVOKED",
+      "action": "admin_or_anomaly_trigger",
+      "condition": "risk_score_elevated",
+      "description": "Immediate session revocation upon suspicious behavior detection"
+    },
+    {
+      "rule_id": "r_10",
+      "source": "SESSION_EXPIRED",
+      "target": "UNAUTHENTICATED",
+      "action": "reauthenticate",
+      "condition": "renew_requested",
+      "description": "Allows user to initiate a new session verification loop"
+    }
+  ],
+  "metadata": {
+    "author": "SecOps Team",
+    "target_resource": "internal-finance-portal",
+    "allowed_roles": ["employee", "finance_analyst"],
+    "max_session_seconds": 1800,
+    "risk_threshold": "LOW"
+  }
+}

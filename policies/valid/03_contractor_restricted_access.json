@@ -1,0 +1,87 @@
+{
+  "policy_id": "pol_valid_contractor_restricted",
+  "policy_name": "Third-Party Contractor Restricted Access",
+  "description": "Zero Trust workflow for external partners with strict temporary tokens and continuous geo-fencing.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "cont_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "contractor_portal_connect",
+      "condition": "partner_vpn_tls"
+    },
+    {
+      "rule_id": "cont_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "federated_idp_login",
+      "condition": "valid_saml_assertion"
+    },
+    {
+      "rule_id": "cont_02_fail",
+      "source": "UNAUTHENTICATED",
+      "target": "ACCESS_DENIED",
+      "action": "federated_idp_login",
+      "condition": "invalid_saml_or_expired_contract"
+    },
+    {
+      "rule_id": "cont_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "verify_push_mfa",
+      "condition": "number_matching_confirmed"
+    },
+    {
+      "rule_id": "cont_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "byod_device_inspection",
+      "condition": "mdm_profile_active_and_geo_allowed"
+    },
+    {
+      "rule_id": "cont_05",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "evaluate_contractor_scope",
+      "condition": "vendor_nd_agreement_valid"
+    },
+    {
+      "rule_id": "cont_06",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "issue_restricted_session",
+      "condition": "ephemeral_time_bound_grant"
+    },
+    {
+      "rule_id": "cont_07",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "hard_timeout_reached",
+      "condition": "session_ttl_45_mins"
+    },
+    {
+      "rule_id": "cont_08",
+      "source": "ACCESS_GRANTED",
+      "target": "REVOKED",
+      "action": "terminate_partner_access",
+      "condition": "vendor_contract_ended_or_ip_shift"
+    },
+    {
+      "rule_id": "cont_09",
+      "source": "SESSION_EXPIRED",
+      "target": "UNAUTHENTICATED",
+      "action": "re_authenticate",
+      "condition": "reauth_prompt"
+    }
+  ],
+  "metadata": {
+    "author": "ThirdPartyVendorMgmt",
+    "target_resource": "contractor-jira-sandbox",
+    "allowed_roles": ["contractor"],
+    "max_session_seconds": 2700,
+    "risk_threshold": "MEDIUM"
+  }
+}

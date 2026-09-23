@@ -1,0 +1,53 @@
+{
+  "policy_id": "pol_invalid_missing_device",
+  "policy_name": "Flawed Policy: Missing Device Posture Check",
+  "description": "Zero Trust violation: Authenticates user credentials but fails to inspect endpoint health or compliance.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "flaw_dev_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "tls_ok"
+    },
+    {
+      "rule_id": "flaw_dev_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "login",
+      "condition": "valid_user_pass"
+    },
+    {
+      "rule_id": "flaw_dev_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "mfa",
+      "condition": "otp_ok"
+    },
+    {
+      "rule_id": "flaw_dev_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "check_role",
+      "condition": "role_is_user",
+      "description": "BYPASS: Skips device posture evaluation"
+    },
+    {
+      "rule_id": "flaw_dev_05",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant",
+      "condition": "allow"
+    },
+    {
+      "rule_id": "flaw_dev_06",
+      "source": "ACCESS_GRANTED",
+      "target": "REVOKED",
+      "action": "kill",
+      "condition": "risk"
+    }
+  ]
+}

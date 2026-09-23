@@ -1,0 +1,87 @@
+{
+  "policy_id": "pol_valid_admin_privileged",
+  "policy_name": "Privileged Cloud Infrastructure Admin Access",
+  "description": "High-assurance Zero Trust workflow requiring hardware security keys and continuous telemetry validation.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "adm_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect_admin_gateway",
+      "condition": "bastion_tls_valid"
+    },
+    {
+      "rule_id": "adm_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "submit_admin_sso",
+      "condition": "valid_credentials"
+    },
+    {
+      "rule_id": "adm_02_fail",
+      "source": "UNAUTHENTICATED",
+      "target": "ACCESS_DENIED",
+      "action": "submit_admin_sso",
+      "condition": "invalid_credentials_or_unauthorized_ip"
+    },
+    {
+      "rule_id": "adm_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "webauthn_hardware_challenge",
+      "condition": "yubikey_fido2_verified"
+    },
+    {
+      "rule_id": "adm_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "cloud_endpoint_compliance",
+      "condition": "device_cert_valid_and_edr_healthy"
+    },
+    {
+      "rule_id": "adm_05",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "just_in_time_elevation",
+      "condition": "jit_approval_ticket_granted"
+    },
+    {
+      "rule_id": "adm_06",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "open_ephemeral_bastion_tunnel",
+      "condition": "session_signed_by_ca"
+    },
+    {
+      "rule_id": "adm_07",
+      "source": "ACCESS_GRANTED",
+      "target": "REVOKED",
+      "action": "continuous_threat_detection",
+      "condition": "guardduty_alert_or_admin_kill"
+    },
+    {
+      "rule_id": "adm_08",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "max_session_duration",
+      "condition": "duration_gt_15_mins"
+    },
+    {
+      "rule_id": "adm_09",
+      "source": "SESSION_EXPIRED",
+      "target": "UNAUTHENTICATED",
+      "action": "reconnect",
+      "condition": "new_request"
+    }
+  ],
+  "metadata": {
+    "author": "CloudSecurityArch",
+    "target_resource": "aws-production-vpc-k8s",
+    "allowed_roles": ["infra-admin"],
+    "max_session_seconds": 900,
+    "risk_threshold": "CRITICAL_MINIMAL"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "policy_id": "pol_invalid_privilege_bypass",
+  "policy_name": "Flawed Policy: Critical Privilege Bypass",
+  "description": "Catastrophic vulnerability: Backdoor transition directly from START to ACCESS_GRANTED.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "bypass_01",
+      "source": "START",
+      "target": "ACCESS_GRANTED",
+      "action": "debug_backdoor_bypass",
+      "condition": "developer_override_flag",
+      "description": "CRITICAL FLAW: Complete bypass of authentication, device posture, and authorization"
+    },
+    {
+      "rule_id": "bypass_02",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "timeout",
+      "condition": "ttl"
+    }
+  ]
+}

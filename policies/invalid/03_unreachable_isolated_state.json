@@ -1,0 +1,67 @@
+{
+  "policy_id": "pol_invalid_unreachable_state",
+  "policy_name": "Flawed Policy: Unreachable Orphan State",
+  "description": "Theory of Computation flaw: Contains orphan state (ELEVATED_AUDIT_LOG) unreachable from START.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "iso_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "tls"
+    },
+    {
+      "rule_id": "iso_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "login",
+      "condition": "creds"
+    },
+    {
+      "rule_id": "iso_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "mfa",
+      "condition": "pass"
+    },
+    {
+      "rule_id": "iso_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "device",
+      "condition": "healthy"
+    },
+    {
+      "rule_id": "iso_05",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "authz",
+      "condition": "role"
+    },
+    {
+      "rule_id": "iso_06",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "iso_07",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "timeout",
+      "condition": "ttl"
+    },
+    {
+      "rule_id": "iso_orphan_rule",
+      "source": "ELEVATED_AUDIT_LOG",
+      "target": "ACCESS_DENIED",
+      "action": "log_event",
+      "condition": "flagged",
+      "description": "Orphan state that can never be reached from START"
+    }
+  ]
+}

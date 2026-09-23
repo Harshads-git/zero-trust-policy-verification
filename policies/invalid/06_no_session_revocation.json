@@ -1,0 +1,52 @@
+{
+  "policy_id": "pol_invalid_no_revocation",
+  "policy_name": "Flawed Policy: Perpetual Zombie Session (No Revocation)",
+  "description": "Zero Trust violation: Once access is granted, the policy lacks any transition to session expiry or revocation.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "perm_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "tls"
+    },
+    {
+      "rule_id": "perm_02",
+      "source": "UNAUTHENTICATED",
+      "target": "AUTHENTICATED",
+      "action": "login",
+      "condition": "creds"
+    },
+    {
+      "rule_id": "perm_03",
+      "source": "AUTHENTICATED",
+      "target": "IDENTITY_VERIFIED",
+      "action": "mfa",
+      "condition": "pass"
+    },
+    {
+      "rule_id": "perm_04",
+      "source": "IDENTITY_VERIFIED",
+      "target": "DEVICE_VERIFIED",
+      "action": "device",
+      "condition": "ok"
+    },
+    {
+      "rule_id": "perm_05",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "authz",
+      "condition": "role"
+    },
+    {
+      "rule_id": "perm_06",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant",
+      "condition": "ok"
+    }
+  ]
+}

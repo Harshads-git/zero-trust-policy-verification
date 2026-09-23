@@ -1,0 +1,46 @@
+{
+  "policy_id": "pol_invalid_missing_auth",
+  "policy_name": "Flawed Policy: Missing Authentication Verification",
+  "description": "Critical security flaw: An unauthenticated subject can transition directly to authorization.",
+  "version": "1.0.0",
+  "initial_state": "START",
+  "terminal_states": ["ACCESS_GRANTED", "ACCESS_DENIED", "REVOKED", "SESSION_EXPIRED"],
+  "rules": [
+    {
+      "rule_id": "flaw_auth_01",
+      "source": "START",
+      "target": "UNAUTHENTICATED",
+      "action": "connect",
+      "condition": "open_port"
+    },
+    {
+      "rule_id": "flaw_auth_02",
+      "source": "UNAUTHENTICATED",
+      "target": "DEVICE_VERIFIED",
+      "action": "check_device_posture",
+      "condition": "device_cert_ok",
+      "description": "CRITICAL BUG: Checks device without verifying user identity"
+    },
+    {
+      "rule_id": "flaw_auth_03",
+      "source": "DEVICE_VERIFIED",
+      "target": "AUTHORIZED",
+      "action": "evaluate_permission",
+      "condition": "default_role"
+    },
+    {
+      "rule_id": "flaw_auth_04",
+      "source": "AUTHORIZED",
+      "target": "ACCESS_GRANTED",
+      "action": "grant_access",
+      "condition": "token_issued"
+    },
+    {
+      "rule_id": "flaw_auth_05",
+      "source": "ACCESS_GRANTED",
+      "target": "SESSION_EXPIRED",
+      "action": "timeout",
+      "condition": "ttl"
+    }
+  ]
+}
