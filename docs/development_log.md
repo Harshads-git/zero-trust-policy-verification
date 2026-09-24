@@ -48,4 +48,33 @@
 
 ---
 
-*(Days 2 through 15 are documented in subsequent log entries.)*
+### DAY 2: Zero Trust Policy Data Model & Schema Validation
+**Date**: September 10, 2026  
+**Objective**: Formally define the access policy data format, state and transition schemas, validation rules, and automated model unit tests.
+
+#### 1. Tasks Executed
+- [x] Defined `PolicyRule` Pydantic model (`source`, `target`, `action`, `condition`, `description`, auto-generated `rule_id`).
+- [x] Defined `PolicyMetadata` model (author, target_resource, allowed_roles, max_session_seconds, risk_threshold).
+- [x] Implemented `ZeroTrustPolicy` model with configurable `initial_state` (default `START`), `terminal_states` list, and `get_all_states()` method.
+- [x] Enforced schema constraints: minimum 1 rule per policy, required source and target states, automated UUID prefixes (`pol_`, `rule_`).
+- [x] Implemented comprehensive unit tests in `backend/tests/test_policy_model.py` covering model creation, validation errors, and state aggregation.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Why JSON-based Declarative Policy Format?**  
+  *Rationale*: JSON is universally serializable across REST APIs, easily ingested by AWS DynamoDB, human-editable, and maps directly to the formal transition relation $\delta \subseteq Q \times \Sigma \times \mathcal{C} \times Q$.
+- **Decision 2: Automated Unique State Aggregation (`get_all_states`)**  
+  *Rationale*: Instead of forcing the administrator to redundantly list every state name in a separate `states` array, `get_all_states()` calculates $Q = \{q_0\} \cup F \cup \{s \mid (s, t) \in \delta\} \cup \{t \mid (s, t) \in \delta\}$. This prevents human typo desynchronization between state declarations and rule definitions.
+- **Decision 3: Pydantic v2 Field Validation**  
+  *Rationale*: Catches malformed policy submissions at the API boundary before running graph verification algorithms.
+
+#### 3. Git Commits for Day 2
+- `b738e9e` - `feat: define Zero Trust policy and rule data models with Pydantic v2`
+- `test: add unit test suite for policy model and schema validation`
+
+#### 4. Reflections & Next Steps for Day 3
+- *Reflection*: Pydantic v2 is noticeably faster than v1 and generates complete JSON schemas out-of-the-box.
+- *Tomorrow's Goal (Day 3)*: Construct the formal Finite State Machine (FSM) class representing the 5-tuple $M = (Q, \Sigma, \delta, q_0, F)$ and build directed graph adjacency representations.
+
+---
+
+*(Days 3 through 15 are documented in subsequent log entries.)*
