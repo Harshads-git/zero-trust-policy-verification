@@ -69,7 +69,7 @@
 
 #### 3. Git Commits for Day 2
 - `b738e9e` - `feat: define Zero Trust policy and rule data models with Pydantic v2`
-- `test: add unit test suite for policy model and schema validation`
+- `545b8a6` - `test: add unit test suite for policy model and schema validation`
 
 #### 4. Reflections & Next Steps for Day 3
 - *Reflection*: Pydantic v2 is noticeably faster than v1 and generates complete JSON schemas out-of-the-box.
@@ -77,4 +77,39 @@
 
 ---
 
-*(Days 3 through 15 are documented in subsequent log entries.)*
+### DAY 3: Finite State Machine (FSM) Core Construction
+**Date**: September 11, 2026  
+**Objective**: Build the Theory of Computation Automaton class $M = (Q, \Sigma, \delta, q_0, F)$, establish forward and reverse adjacency representations, and test transition handling.
+
+#### 1. Tasks Executed
+- [x] Implemented `Transition` named tuple in `backend/core/fsm.py` with `rule_id`, `source`, `target`, `action`, `condition`, and `description`.
+- [x] Implemented `FiniteStateMachine` class capturing the formal 5-tuple:
+  - $Q$: States set (initialized with $q_0 \cup F$).
+  - $\Sigma$: Operational action alphabet.
+  - $\delta$: Dual adjacency mappings: forward `_adj: Dict[str, List[Transition]]` and reverse `_rev_adj: Dict[str, List[Transition]]`.
+  - $q_0$: Initial start state (`START`).
+  - $F$: Designated terminal set (`ACCESS_GRANTED`, `ACCESS_DENIED`, `REVOKED`, `SESSION_EXPIRED`).
+- [x] Implemented factory constructor `FiniteStateMachine.from_policy(policy)`.
+- [x] Added neighbor lookup and degree inspection helpers (`get_outgoing()`, `get_incoming()`, `get_neighbors()`).
+- [x] Built `to_cytoscape_elements()` to export Cytoscape.js compatible graph structures with class tagging for start, terminal, and access states.
+- [x] Wrote automated unit tests in `backend/tests/test_fsm.py` validating initialization, transition addition, and degree properties.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Dual Forward & Reverse Adjacency Representation**  
+  *Rationale*: Forward traversal (`_adj`) is needed for standard BFS reachability from $q_0$, while reverse traversal (`_rev_adj`) is crucial for dead-end / sink-state detection (finding whether terminal states $F$ can be reached backwards from every non-terminal state in $Q \setminus F$). Storing both yields $\mathcal{O}(1)$ edge lookup in both directions.
+- **Decision 2: Immutable NamedTuple for Transitions**  
+  *Rationale*: In automata theory, transitions are mathematical relations. Making `Transition` a `NamedTuple` ensures hashability, immutability, and zero performance overhead compared to heavy ORM models.
+- **Decision 3: Separation of Graph Representation from Verification Rules**  
+  *Rationale*: By decoupling the mathematical FSM data structure from security verification rules, new Theory of Computation algorithms (cycle detection, equivalence testing, minimization) can be added independently without altering the core model.
+
+#### 3. Git Commits for Day 3
+- `2e42335` - `feat: implement formal Finite State Machine core and transition function`
+- `f34b65e` - `test: add unit tests for FSM construction, reachability, and trap detection`
+
+#### 4. Reflections & Next Steps for Day 4
+- *Reflection*: The dual-adjacency approach makes reverse reachability run in linear time without rebuilding the graph.
+- *Tomorrow's Goal (Day 4)*: Implement formal graph traversal algorithms in `backend/core/graph_algorithms.py` (BFS reachability, cycle detection, unreachable state detection, and dead-end state identification).
+
+---
+
+*(Days 4 through 15 are documented in subsequent log entries.)*
