@@ -112,4 +112,35 @@
 
 ---
 
-*(Days 4 through 15 are documented in subsequent log entries.)*
+### DAY 4: Formal Verification & Graph Traversal Algorithms
+**Date**: September 12, 2026  
+**Objective**: Implement Theory of Computation algorithms for reachability analysis, dead-end trap detection, cycle-free pathfinding, and minimal counterexample witness extraction.
+
+#### 1. Tasks Executed
+- [x] Implemented `compute_reachable_states(fsm, start_state)` using Breadth-First Search (BFS) with strict $\mathcal{O}(|V| + |E|)$ time complexity.
+- [x] Implemented `compute_unreachable_states(fsm)` to detect orphan security logic: $Q \setminus \text{Reachable}(q_0)$.
+- [x] Implemented `find_shortest_path(fsm, source, target)` using BFS queue for minimal counterexample extraction (witness traces).
+- [x] Implemented `find_all_simple_paths(fsm, source, target, max_depth)` using Depth-First Search (DFS) with visited sets to avoid infinite cycles.
+- [x] Implemented `detect_dead_states(fsm)` using reverse BFS from the terminal set $F$ to locate non-terminal states that trap requests in unresolved limbo.
+- [x] Implemented `detect_conflicts_and_nondeterminism(fsm)` detecting race conditions where the identical action and condition diverge to different states.
+- [x] Added unit tests covering all traversal methods in `backend/tests/test_fsm.py`.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Breadth-First Search for Minimal Witness Traces**  
+  *Rationale*: In formal verification and security auditing, returning the shortest counterexample path (e.g., `START -> UNAUTHENTICATED -> ACCESS_GRANTED`) is far easier for a human administrator to understand and remediate than a long cyclic DFS trace. BFS naturally guarantees finding the shortest witness trajectory.
+- **Decision 2: Reverse Multi-Source BFS for Dead-End Detection**  
+  *Rationale*: Instead of running a separate search from every individual state to see if it can reach $F$ (which would take $\mathcal{O}(|V| \cdot (|V| + |E|))$), we initialize a single reverse BFS queue seeded with all terminal states $F$ simultaneously. This calculates terminal reachability in a single $\mathcal{O}(|V| + |E|)$ sweep!
+- **Decision 3: Cycle-Free Depth-Limited DFS for Path Enumeration**  
+  *Rationale*: Finite state machines in access control can contain legitimate retry loops (e.g., `SESSION_EXPIRED -> UNAUTHENTICATED`). Path exploration must prune cycles to prevent stack overflows while rigorously inspecting all distinct execution trajectories up to a bounded depth.
+
+#### 3. Git Commits for Day 4
+- `c022bc9` - `feat: add BFS reachability, cycle detection, and dead-state graph algorithms`
+- `f34b65e` - `test: add unit tests for FSM construction, reachability, and trap detection`
+
+#### 4. Reflections & Next Steps for Day 5
+- *Reflection*: Reverse multi-source BFS reduced dead-state detection latency to a fraction of a millisecond.
+- *Tomorrow's Goal (Day 5)*: Formally encode the Zero Trust domain invariants (Authentication Precedence, Device Trust, Least Privilege, Session Revocability) in `backend/core/rules/` on top of these graph algorithms.
+
+---
+
+*(Days 5 through 15 are documented in subsequent log entries.)*
