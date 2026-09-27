@@ -143,4 +143,45 @@
 
 ---
 
-*(Days 5 through 15 are documented in subsequent log entries.)*
+### DAY 5: Zero Trust Safety Invariant Rules
+**Date**: September 13, 2026  
+**Objective**: Formally encode core NIST SP 800-207 Zero Trust domain safety invariants (Authentication Precedence, Device Posture Trust, Least Privilege Authorization, and Session Revocability) as modular verification checks with explainable remediation output.
+
+#### 1. Tasks Executed
+- [x] Implemented `AuthenticationInvariantRule`:
+  - Enforces that EVERY trajectory leading into `ACCESS_GRANTED` must traverse identity authentication states (`AUTHENTICATED`, `IDENTITY_VERIFIED`, `MFA_VERIFIED`).
+  - Severity: `CRITICAL`.
+  - Automatically attaches minimal counterexample witness path on violation.
+- [x] Implemented `DeviceTrustInvariantRule`:
+  - Enforces NIST SP 800-207 Tenet 5 (asset posture verification) by checking for `DEVICE_VERIFIED` states or device health guard conditions.
+  - Severity: `HIGH`.
+- [x] Implemented `AuthorizationCheckRule`:
+  - Blocks privilege bypasses (direct jumps from `START`/`UNAUTHENTICATED` to `ACCESS_GRANTED`).
+  - Blocks authentication-to-grant transitions that omit explicit resource permission evaluation.
+  - Severity: `CRITICAL` / `HIGH`.
+- [x] Implemented `SessionRevocationInvariantRule`:
+  - Prevents perpetual zombie grants by asserting that `ACCESS_GRANTED` has valid exit paths to `SESSION_EXPIRED` or `REVOKED`.
+  - Severity: `HIGH`.
+- [x] Created dedicated isolated unit tests in `backend/tests/test_zt_invariants.py` (9 tests covering each invariant in isolation).
+- [x] Verified full test suite passing (35 tests in 0.49s).
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Universal Path Quantification ($\forall$ Trajectories)**  
+  *Rationale*: In access control, checking if *one* path authenticates the user is insufficient. An attacker will exploit the least secure path. Therefore, safety invariants enforce universal quantification: $\forall \text{ path } P = (q_0, \dots, \text{ACCESS\_GRANTED})$, authentication and device posture must hold.
+- **Decision 2: Severity Categorization Aligned with CVSS / NIST**  
+  *Rationale*: Violations that permit unauthenticated external access are tagged `CRITICAL`, while missing device compliance or lack of session termination are tagged `HIGH`. This allows administrators to prioritize immediate mitigations.
+- **Decision 3: Actionable Remediation Guidance**  
+  *Rationale*: A formal verification tool is only useful if it explains how to fix the flaw. Every violation object provides a concrete, natural-language `remediation` field explaining exactly which state or transition to add or prune.
+
+#### 3. Git Commits for Day 5
+- `3c9b199` - `feat: refine Zero Trust safety invariant rules for identity, device posture, and authorization`
+- `dcffb02` - `test: add isolated unit tests for individual Zero Trust safety invariants`
+- `docs: add Day 5 Zero Trust invariant rules engineering log and security analysis`
+
+#### 4. Reflections & Next Steps for Day 6
+- *Reflection*: Universal path checking with depth-limited DFS proved remarkably fast (< 0.5 ms per policy).
+- *Tomorrow's Goal (Day 6)*: Build the comprehensive verification orchestrator (`backend/core/verifier.py`), structured report synthesis (`backend/models/report.py`), and counterexample pathfinder.
+
+---
+
+*(Days 6 through 15 are documented in subsequent log entries.)*
