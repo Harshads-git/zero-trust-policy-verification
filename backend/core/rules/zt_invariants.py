@@ -1,11 +1,11 @@
 """
 Zero Trust Domain Invariants (NIST SP 800-207 Principles)
 Formal verification of Zero Trust security properties:
-- Invariant 1: Continuous Authentication (Never Trust, Always Verify Identity)
-- Invariant 2: Explicit Device Trust (Health & Posture Verification)
-- Invariant 3: Least Privilege & Strict Authorization
-- Invariant 4: Session Revocability & Expiration Lifecycle
-- Invariant 5: Direct Privilege Escalation / Bypass Prevention
+- Invariant 1: Continuous Authentication (Tenet 6: Dynamic authentication prior to access)
+- Invariant 2: Explicit Device Trust (Tenet 5: Asset posture & compliance verification)
+- Invariant 3: Least Privilege & Strict Authorization (Tenet 4: Per-session authorization)
+- Invariant 4: Session Revocability & Expiration Lifecycle (Tenet 3: Dynamic session-based access)
+- Invariant 5: Direct Privilege Escalation / Bypass Prevention (Tenet 2: Zero implicit trust)
 """
 
 from typing import List, Set
