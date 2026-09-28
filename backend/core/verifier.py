@@ -88,6 +88,20 @@ class ZeroTrustVerificationEngine:
 
         is_valid = len(violations) == 0
 
+        # Step 6: Compute risk score and posture
+        weights = {"CRITICAL": 40, "HIGH": 20, "MEDIUM": 10, "LOW": 5, "INFO": 1}
+        raw_score = sum(weights.get(v.severity.value, 5) for v in violations)
+        risk_score = min(100, raw_score)
+
+        if risk_score == 0:
+            security_posture = "COMPLIANT"
+        elif risk_score <= 20:
+            security_posture = "LOW_RISK"
+        elif risk_score <= 50:
+            security_posture = "ELEVATED_RISK"
+        else:
+            security_posture = "CRITICAL_RISK"
+
         return VerificationReport(
             policy_id=policy.policy_id,
             policy_name=policy.policy_name,
@@ -106,5 +120,8 @@ class ZeroTrustVerificationEngine:
                 "elements": graph_elements,
                 "initial_state": fsm.q0,
                 "terminal_states": sorted(list(fsm.F)),
-            }
+            },
+            risk_score=risk_score,
+            security_posture=security_posture
         )
+

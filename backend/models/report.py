@@ -70,3 +70,36 @@ class VerificationReport(BaseModel):
     verification_time_ms: float = 0.0
     formal_invariants_checked: Dict[str, bool] = Field(default_factory=dict)
     fsm_graph_summary: Dict[str, Any] = Field(default_factory=dict)
+    risk_score: int = 0
+    security_posture: str = "COMPLIANT"
+
+    def calculate_risk_score(self) -> int:
+        """Computes weighted risk score (0-100) based on violation severities."""
+        weights = {"CRITICAL": 40, "HIGH": 20, "MEDIUM": 10, "LOW": 5, "INFO": 1}
+        raw_score = sum(weights.get(v.severity.value, 5) for v in self.violations)
+        return min(100, raw_score)
+
+    def determine_posture(self) -> str:
+        """Classifies security posture into COMPLIANT, LOW_RISK, ELEVATED_RISK, or CRITICAL_RISK."""
+        score = self.calculate_risk_score()
+        if score == 0:
+            return "COMPLIANT"
+        elif score <= 20:
+            return "LOW_RISK"
+        elif score <= 50:
+            return "ELEVATED_RISK"
+        return "CRITICAL_RISK"
+
+    def get_remediation_plan(self) -> List[Dict[str, Any]]:
+        """Generates structured, step-by-step remediation plan for administrators."""
+        plan = []
+        for idx, v in enumerate(self.violations, 1):
+            if v.remediation:
+                plan.append({
+                    "step": idx,
+                    "violation_type": v.type.value,
+                    "severity": v.severity.value,
+                    "target": v.rule_id or v.state or "Policy Structure",
+                    "action": v.remediation
+                })
+        return plan
