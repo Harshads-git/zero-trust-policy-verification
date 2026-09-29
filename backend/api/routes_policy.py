@@ -66,12 +66,53 @@ def get_policy(policy_id: str, repo: PolicyRepository = Depends(get_repository))
     return policy
 
 
+@router.get("/{policy_id}/verify", response_model=VerificationReport, summary="Verify a stored policy on-demand")
+def verify_stored_policy(
+    policy_id: str,
+    save_audit: bool = True,
+    repo: PolicyRepository = Depends(get_repository)
+) -> VerificationReport:
+    """Retrieves an existing policy from storage and executes formal verification."""
+    policy = repo.get_policy(policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
+    report = verifier.verify(policy)
+    if save_audit:
+        try:
+            repo.save_report(report)
+        except Exception:
+            pass
+    return report
+
+
+@router.get("/{policy_id}/remediation", summary="Retrieve remediation plan for a stored policy")
+def get_policy_remediation_plan(
+    policy_id: str,
+    repo: PolicyRepository = Depends(get_repository)
+) -> Dict[str, Any]:
+    """Retrieves policy, verifies it, and returns an actionable remediation plan."""
+    policy = repo.get_policy(policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
+    report = verifier.verify(policy)
+    return {
+        "policy_id": policy.policy_id,
+        "policy_name": policy.policy_name,
+        "valid": report.valid,
+        "risk_score": report.risk_score,
+        "security_posture": report.security_posture,
+        "violations_count": report.violations_count,
+        "remediation_plan": report.get_remediation_plan()
+    }
+
+
 @router.delete("/{policy_id}", summary="Delete a policy")
 def delete_policy(policy_id: str, repo: PolicyRepository = Depends(get_repository)) -> Dict[str, str]:
     success = repo.delete_policy(policy_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
     return {"message": f"Policy '{policy_id}' deleted successfully."}
+
 
 
 @router.get("/reports/history", response_model=List[VerificationReport], summary="Retrieve verification audit history")
