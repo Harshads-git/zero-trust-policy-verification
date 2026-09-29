@@ -226,5 +226,45 @@
 
 ---
 
-*(Days 7 through 15 are documented in subsequent log entries.)*
+### DAY 7: Backend REST API Architecture & Request Pipeline
+**Date**: September 15, 2026  
+**Objective**: Build a clean, asynchronous REST API layer using FastAPI, implementing policy submission, on-demand verification, CRUD storage endpoints, execution timing middleware, and integration tests.
+
+#### 1. Tasks Executed
+- [x] Implemented core policy endpoints in `backend/api/routes_policy.py`:
+  - `POST /api/policies/verify`: Direct in-memory verification returning structured report and Cytoscape elements.
+  - `POST /api/policies`: Persists policy and records baseline verification in audit history.
+  - `GET /api/policies`: Enumerates all stored access control policies.
+  - `GET /api/policies/{policy_id}`: Retrieves policy specification by ID (with 404 error handling).
+  - `GET /api/policies/{policy_id}/verify`: On-demand verification of stored policy.
+  - `GET /api/policies/{policy_id}/remediation`: Direct extraction of sequenced remediation plan and posture.
+  - `DELETE /api/policies/{policy_id}`: Removes policy from persistent storage.
+  - `GET /api/policies/reports/history`: Retrieves chronological audit log of past verification runs.
+  - `GET /api/policies/samples/templates`: Exposes bundled valid and flawed reference policies for the UI.
+- [x] Configured `audit_and_timing_middleware` in `backend/main.py` adding `X-Process-Time-Ms` response header.
+- [x] Configured CORS middleware supporting localhost and custom origins.
+- [x] Built comprehensive integration test suite in `backend/tests/test_api.py` (10 tests covering health, static root, templates, verification, CRUD lifecycle, and 404 responses).
+- [x] Verified full test suite passing (44 tests in 0.95s).
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Stateless vs State-Persisted Verification Separation**  
+  *Rationale*: Some security workflows only need pre-commit validation without saving data to a database (e.g. CI/CD linting checks). Providing a stateless `/api/policies/verify` alongside a stateful `POST /api/policies` gives developers maximum flexibility.
+- **Decision 3: HTTP `X-Process-Time-Ms` Header**  
+  *Rationale*: Demonstrates microsecond/millisecond performance transparency to examiners and clients without requiring external profiling tools.
+- **Decision 3: Dependency Injection for Repositories (`Depends(get_repository)`)**  
+  *Rationale*: By injecting `PolicyRepository` into FastAPI route handlers, the storage implementation can be seamlessly swapped between SQLite and AWS DynamoDB using environment variables without modifying route code.
+
+#### 3. Git Commits for Day 7
+- `dc4fa82` - `feat: implement on-demand stored policy verification and remediation API endpoints`
+- `1b0d1ee` - `test: add integration test suite for policy CRUD, verification by ID, and remediation endpoints`
+- `docs: add Day 7 FastAPI backend endpoints and integration testing engineering log`
+
+#### 4. Reflections & Next Steps for Day 8
+- *Reflection*: FastAPI dependency injection made testing with temporary SQLite fixtures completely isolated and fast.
+- *Tomorrow's Goal (Day 8)*: Build the responsive web dashboard (`frontend/index.html`, `frontend/css/style.css`, `frontend/js/app.js`) with policy editor, template selector, and live metrics ribbon.
+
+---
+
+*(Days 8 through 15 are documented in subsequent log entries.)*
+
 
