@@ -162,6 +162,53 @@ async function verifyCurrentPolicy() {
   }
 }
 
+// Format Policy JSON
+function formatPolicyJson() {
+  const editor = document.getElementById("policy-editor");
+  try {
+    const parsed = JSON.parse(editor.value);
+    editor.value = JSON.stringify(parsed, null, 2);
+  } catch (err) {
+    alert("Cannot format invalid JSON: " + err.message);
+  }
+}
+
+// Save Policy to Database
+async function savePolicyToDatabase() {
+  const editor = document.getElementById("policy-editor");
+  let policy;
+  try {
+    policy = JSON.parse(editor.value);
+  } catch (err) {
+    alert("Cannot save invalid JSON: " + err.message);
+    return;
+  }
+
+  const saveBtn = document.getElementById("btn-save-db");
+  saveBtn.textContent = "Saving...";
+  saveBtn.disabled = true;
+
+  try {
+    const res = await fetch("/api/policies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(policy)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Error saving policy");
+    }
+    const data = await res.json();
+    alert(`Policy "${data.policy.policy_name}" saved successfully with ID: ${data.policy.policy_id}`);
+    await loadVerificationHistory();
+  } catch (err) {
+    alert("Failed to save policy: " + err.message);
+  } finally {
+    saveBtn.textContent = "Save to DB";
+    saveBtn.disabled = false;
+  }
+}
+
 // Render Results & Invariants
 function renderVerificationResults(report) {
   // Update Metrics Ribbon
@@ -169,9 +216,24 @@ function renderVerificationResults(report) {
   statusEl.textContent = report.valid ? "PASSED (VALID)" : "FAILED (VIOLATIONS)";
   statusEl.className = `metric-val ${report.valid ? "val-valid" : "val-invalid"}`;
 
+  const riskScore = report.risk_score !== undefined ? report.risk_score : 0;
+  const posture = report.security_posture || (report.valid ? "COMPLIANT" : "CRITICAL_RISK");
+
+  const riskEl = document.getElementById("metric-risk-score");
+  if (riskEl) riskEl.textContent = `${riskScore} / 100`;
+
+  const postureEl = document.getElementById("metric-posture");
+  if (postureEl) {
+    postureEl.textContent = posture;
+    postureEl.className = `metric-val ${report.valid ? "val-valid" : "val-invalid"}`;
+  }
+
+  const stTrEl = document.getElementById("metric-states-transitions");
+  if (stTrEl) {
+    stTrEl.textContent = `${report.total_states} Q / ${report.total_transitions} \u03b4`;
+  }
+
   document.getElementById("metric-violations").textContent = report.violations_count;
-  document.getElementById("metric-states").textContent = report.total_states;
-  document.getElementById("metric-transitions").textContent = report.total_transitions;
   document.getElementById("metric-time").textContent = `${report.verification_time_ms} ms`;
 
   // Render FSM Graph

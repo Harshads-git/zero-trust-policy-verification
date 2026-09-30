@@ -43,16 +43,20 @@
           <div id="metric-status" class="metric-val val-valid">READY</div>
         </div>
         <div class="metric-card">
+          <div class="metric-label">Security Posture</div>
+          <div id="metric-posture" class="metric-val val-valid">COMPLIANT</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Risk Score (0-100)</div>
+          <div id="metric-risk-score" class="metric-val">0</div>
+        </div>
+        <div class="metric-card">
           <div class="metric-label">Violations Detected</div>
           <div id="metric-violations" class="metric-val">0</div>
         </div>
         <div class="metric-card">
-          <div class="metric-label">Automaton States |Q|</div>
-          <div id="metric-states" class="metric-val">0</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Transitions |&delta;|</div>
-          <div id="metric-transitions" class="metric-val">0</div>
+          <div class="metric-label">States / Transitions</div>
+          <div id="metric-states-transitions" class="metric-val">0 / 0</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">Formal Check Latency</div>
@@ -67,9 +71,10 @@
           <div class="card-header">
             <h2>Policy Specification (JSON)</h2>
             <div style="display:flex; gap: 6px;">
+              <button class="btn" onclick="formatPolicyJson()">Format</button>
               <button class="btn" onclick="document.getElementById('policy-file-input').click()">Upload</button>
               <input type="file" id="policy-file-input" style="display:none;" accept=".json" onchange="handleFileUpload(this)">
-              <button class="btn" onclick="downloadCurrentReport()">Export Report</button>
+              <button class="btn" onclick="downloadCurrentReport()">Export</button>
             </div>
           </div>
           <div class="card-body">
@@ -81,6 +86,7 @@
             <textarea id="policy-editor" class="code-editor" spellcheck="false" placeholder="Enter Zero Trust Policy JSON here..."></textarea>
             <div style="margin-top: 12px; display: flex; gap: 8px;">
               <button id="btn-verify" class="btn btn-primary" style="flex: 1;" onclick="verifyCurrentPolicy()">Run Formal Verification</button>
+              <button id="btn-save-db" class="btn" onclick="savePolicyToDatabase()">Save to DB</button>
             </div>
           </div>
         </div>
