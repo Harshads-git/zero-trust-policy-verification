@@ -439,3 +439,87 @@ table.data-table tr:hover {
   margin: 8px 0;
   overflow-x: auto;
 }
+
+/* Security Posture Badges & Risk Meters */
+.posture-badge {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.posture-COMPLIANT {
+  color: #22c55e !important;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+}
+
+.posture-LOW_RISK {
+  color: #38bdf8 !important;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+.posture-ELEVATED_RISK {
+  color: #f59e0b !important;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+.posture-CRITICAL_RISK {
+  color: #ef4444 !important;
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
+}
+
+.risk-score-low {
+  color: #22c55e !important;
+}
+
+.risk-score-medium {
+  color: #f59e0b !important;
+}
+
+.risk-score-high {
+  color: #ef4444 !important;
+}
+
+/* Remediation Roadmap Container */
+.remediation-plan-box {
+  background-color: #172033;
+  border: 1px solid #38bdf8;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.remediation-plan-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+}
+
+.remediation-plan-item:last-child {
+  border-bottom: none;
+}
+
+.remediation-step-badge {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.remediation-target-tag {
+  background-color: #334155;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+

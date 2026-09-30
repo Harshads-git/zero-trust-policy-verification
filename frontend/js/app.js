@@ -220,12 +220,15 @@ function renderVerificationResults(report) {
   const posture = report.security_posture || (report.valid ? "COMPLIANT" : "CRITICAL_RISK");
 
   const riskEl = document.getElementById("metric-risk-score");
-  if (riskEl) riskEl.textContent = `${riskScore} / 100`;
+  if (riskEl) {
+    riskEl.textContent = `${riskScore} / 100`;
+    riskEl.className = `metric-val ${riskScore > 50 ? 'risk-score-high' : (riskScore > 20 ? 'risk-score-medium' : 'risk-score-low')}`;
+  }
 
   const postureEl = document.getElementById("metric-posture");
   if (postureEl) {
     postureEl.textContent = posture;
-    postureEl.className = `metric-val ${report.valid ? "val-valid" : "val-invalid"}`;
+    postureEl.className = `metric-val posture-badge posture-${posture}`;
   }
 
   const stTrEl = document.getElementById("metric-states-transitions");
@@ -245,12 +248,18 @@ function renderVerificationResults(report) {
   const violationsContainer = document.getElementById("violations-list");
   violationsContainer.innerHTML = "";
 
+  const remediationContainer = document.getElementById("remediation-plan-container");
+  const remediationList = document.getElementById("remediation-plan-list");
+
   if (report.valid) {
     violationsContainer.innerHTML = `
       <div style="background-color: #064e3b; border: 1px solid #059669; color: #a7f3d0; padding: 14px 18px; border-radius: 4px;">
         <strong>Formal Verification Success:</strong> All Zero Trust safety invariants and Automata reachability properties satisfied. No unauthorized privilege trajectories detected.
       </div>
     `;
+    if (remediationContainer) {
+      remediationContainer.style.display = "none";
+    }
   } else {
     report.violations.forEach((v, idx) => {
       const card = document.createElement("div");
@@ -267,6 +276,33 @@ function renderVerificationResults(report) {
       `;
       violationsContainer.appendChild(card);
     });
+
+    // Populate Automated Remediation Roadmap
+    if (remediationContainer && remediationList) {
+      const actionableViolations = report.violations.filter(v => v.remediation);
+      if (actionableViolations.length > 0) {
+        remediationContainer.style.display = "block";
+        remediationList.innerHTML = "";
+        actionableViolations.forEach((v, idx) => {
+          const item = document.createElement("div");
+          item.className = "remediation-plan-item";
+          item.innerHTML = `
+            <span class="remediation-step-badge">${idx + 1}</span>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="remediation-target-tag">${escapeHtml(v.rule_id || v.state || "Policy Core")}</span>
+                <span class="badge" style="background:${v.severity === 'CRITICAL' ? '#7f1d1d' : '#451a03'}; color:#fecaca;">${v.severity}</span>
+                <span style="font-size: 11px; color: #94a3b8;">${escapeHtml(v.type)}</span>
+              </div>
+              <p style="font-size: 12px; color: #bae6fd;">${escapeHtml(v.remediation)}</p>
+            </div>
+          `;
+          remediationList.appendChild(item);
+        });
+      } else {
+        remediationContainer.style.display = "none";
+      }
+    }
   }
 }
 
