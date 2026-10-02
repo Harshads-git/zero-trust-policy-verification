@@ -95,8 +95,19 @@
         <div class="card">
           <div class="card-header">
             <h2>Automaton Graph Visualization & State Inspector</h2>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn" onclick="resetGraphZoom()">Reset View</button>
+            <div class="graph-toolbar">
+              <select id="layout-select" onchange="changeGraphLayout(this.value)" title="Choose Graph Layout Algorithm">
+                <option value="breadthfirst">Layout: Hierarchical (Breadthfirst)</option>
+                <option value="cose">Layout: Force-Directed (CoSE)</option>
+                <option value="concentric">Layout: Radial (Concentric)</option>
+                <option value="circle">Layout: Circular</option>
+                <option value="grid">Layout: Grid</option>
+              </select>
+              <button class="btn btn-sm" onclick="zoomInGraph()" title="Zoom In">+</button>
+              <button class="btn btn-sm" onclick="zoomOutGraph()" title="Zoom Out">&minus;</button>
+              <button class="btn btn-sm" onclick="resetGraphZoom()" title="Fit Graph into View">Fit</button>
+              <button class="btn btn-sm" id="btn-lock-nodes" onclick="toggleNodeLock()" title="Lock / Unlock Node Dragging">Lock</button>
+              <button class="btn btn-sm" onclick="exportGraphImage()" title="Download PNG Snapshot">Export PNG</button>
             </div>
           </div>
           <div class="card-body">

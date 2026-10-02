@@ -135,6 +135,11 @@ function renderFsmGraph(elements, violations = []) {
   cy.elements().remove();
   cy.add(elements);
 
+  // Re-apply locked state if active
+  if (nodesLocked) {
+    cy.nodes().lock();
+  }
+
   // Highlight violating paths
   violations.forEach(v => {
     if (v.witness_path && v.witness_path.length > 1) {
@@ -149,20 +154,132 @@ function renderFsmGraph(elements, violations = []) {
     }
   });
 
-  cy.layout({
-    name: "breadthfirst",
-    directed: true,
-    padding: 35,
-    spacingFactor: 1.4,
-    animate: false
-  }).run();
+  applyCurrentLayout(false);
+}
 
-  cy.fit();
+let currentLayout = "breadthfirst";
+let nodesLocked = false;
+
+function changeGraphLayout(layoutName) {
+  currentLayout = layoutName;
+  applyCurrentLayout(true);
+}
+
+function applyCurrentLayout(animate = true) {
+  if (!cy || cy.elements().length === 0) return;
+
+  let layoutOptions = {
+    padding: 35,
+    animate: animate,
+    animationDuration: 400
+  };
+
+  if (currentLayout === "breadthfirst") {
+    const startNodes = cy.nodes().filter(n => n.data("is_start"));
+    layoutOptions = {
+      ...layoutOptions,
+      name: "breadthfirst",
+      directed: true,
+      spacingFactor: 1.4,
+      roots: startNodes.length > 0 ? startNodes : undefined
+    };
+  } else if (currentLayout === "cose") {
+    layoutOptions = {
+      ...layoutOptions,
+      name: "cose",
+      nodeRepulsion: 6500,
+      idealEdgeLength: 100,
+      gravity: 0.25,
+      numIter: 1000
+    };
+  } else if (currentLayout === "concentric") {
+    layoutOptions = {
+      ...layoutOptions,
+      name: "concentric",
+      concentric: function (node) {
+        return node.data("is_start") ? 3 : (node.data("is_terminal") ? 1 : 2);
+      },
+      levelWidth: () => 1
+    };
+  } else if (currentLayout === "circle") {
+    layoutOptions = {
+      ...layoutOptions,
+      name: "circle"
+    };
+  } else if (currentLayout === "grid") {
+    layoutOptions = {
+      ...layoutOptions,
+      name: "grid",
+      avoidOverlap: true
+    };
+  }
+
+  const layout = cy.layout(layoutOptions);
+  layout.run();
+  if (!animate) {
+    cy.fit(undefined, 35);
+  }
+}
+
+function zoomInGraph() {
+  if (cy) {
+    cy.zoom({
+      level: cy.zoom() * 1.25,
+      renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 }
+    });
+  }
+}
+
+function zoomOutGraph() {
+  if (cy) {
+    cy.zoom({
+      level: cy.zoom() * 0.8,
+      renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 }
+    });
+  }
 }
 
 function resetGraphZoom() {
   if (cy) {
-    cy.fit();
+    cy.fit(undefined, 35);
     cy.center();
   }
 }
+
+function toggleNodeLock() {
+  if (!cy) return;
+  nodesLocked = !nodesLocked;
+  if (nodesLocked) {
+    cy.nodes().lock();
+  } else {
+    cy.nodes().unlock();
+  }
+  const lockBtn = document.getElementById("btn-lock-nodes");
+  if (lockBtn) {
+    lockBtn.textContent = nodesLocked ? "Unlock" : "Lock";
+    lockBtn.style.backgroundColor = nodesLocked ? "#7f1d1d" : "";
+  }
+}
+
+function exportGraphImage() {
+  if (!cy || cy.elements().length === 0) {
+    alert("No automaton graph loaded to export.");
+    return;
+  }
+  try {
+    const pngData = cy.png({
+      full: true,
+      bg: "#090d16",
+      scale: 2
+    });
+    const a = document.createElement("a");
+    a.href = pngData;
+    a.download = `ztpve_automaton_graph_${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (err) {
+    alert("Failed to export graph image: " + err.message);
+  }
+}
+
