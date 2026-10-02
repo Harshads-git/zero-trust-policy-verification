@@ -303,9 +303,50 @@
 - *Reflection*: The dashboard brings the mathematical FSM and REST API alive visually. The reactive metrics ribbon immediately signals verification outcomes.
 - *Tomorrow's Goal (Day 9)*: Polish and enhance the Cytoscape.js interactive graph visualizer (intelligent layout algorithms, zoom controls, drag interactions, and node click inspector for in-degree and out-degree analysis).
 
+### DAY 9: Interactive Automaton Graph Visualizer Refinements & Trajectory Stepper
+**Date**: September 17, 2026  
+**Objective**: Elevate the Cytoscape.js directed graph visualization into a full-featured formal inspection suite with multi-layout algorithms, zoom/lock/export toolbar, state/edge inspector panels, and animated counterexample witness trajectory stepper.
+
+#### 1. Tasks Executed
+- [x] Implemented multi-layout algorithm switching in `frontend/js/visualizer.js`:
+  - **Hierarchical Breadthfirst**: Organizes states top-to-bottom starting strictly from initial state $q_0$.
+  - **CoSE (Compound Spring Embedder)**: Physics force-directed layout modeling state node repulsion and spring tension along transitions.
+  - **Concentric**: Places states on radial concentric rings tiered by formal significance (level 3 for $q_0$, level 2 for intermediates, level 1 for terminal states $F$).
+  - **Circular & Grid**: Canonical mathematical layouts for geometric comparison.
+- [x] Engineered graph viewport controls in `frontend/index.html` and `frontend/js/visualizer.js`:
+  - Zoom In (`+`), Zoom Out (`-`), and viewport reset (`Fit`).
+  - Interactive Node Dragging Lock/Unlock toggle (`toggleNodeLock()`).
+  - High-resolution client-side canvas snapshot export to PNG (`exportGraphImage()`).
+- [x] Designed formal Automaton State & Transition Inspector in `frontend/index.html` & `frontend/css/style.css`:
+  - Node Inspector: Displays formal classification (Initial $q_0$, Terminal $F$, Intermediate), in-degree $\deg^-(q)$, out-degree $\deg^+(q)$, full lists of incoming $\delta^-(q)$ and outgoing $\delta^+(q)$ transitions with trigger actions and guard conditions.
+  - Edge Inspector: Displays formal transition formula $\delta(q_{\text{src}}, \sigma) \to q_{\text{tgt}}$, rule identifier, guard condition predicate, and verification status.
+  - One-click "Center on Node" camera navigation.
+- [x] Engineered interactive Counterexample Witness Trace Stepper in `frontend/js/visualizer.js` and `frontend/js/app.js`:
+  - "Highlight Trace" dims unrelated graph elements (`opacity: 0.2`) and renders the counterexample path in bold glowing red.
+  - "Animate Trajectory" steps through the witness sequence node-by-node with a timed pulse indicator simulating an attacker trajectory.
+  - "Reset View" restores default opacity and viewport bounding box.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Client-Side Vector Canvas Image Export**  
+  *Rationale*: Academic project viva demonstrations and technical paper submissions frequently require high-resolution automaton diagrams. Generating snapshots client-side using `cy.png({ full: true, scale: 2, bg: '#090d16' })` requires no backend graphics rendering libraries (e.g. Cairo or Graphviz), keeping the cloud footprint minimal.
+- **Decision 2: Graph Dimming with Selective Witness Path Illumination**  
+  *Rationale*: Real-world enterprise Zero Trust access graphs can contain dozens of states and hundreds of edges. When an invariant fails, visual clutter makes debugging difficult. Dimming non-participating elements while spotlighting the counterexample witness trace isolates the root cause instantly.
+- **Decision 3: Direct Formal Degree & Transition Inspection**  
+  *Rationale*: Connecting the interactive GUI directly to formal automata definitions ($\deg^-(q)$, $\deg^+(q)$, $\delta(q, \sigma)$) strengthens the academic rigor of the capstone project for Theory of Computation defense.
+
+#### 3. Git Commits for Day 9
+- `d5fc648` - `feat(visualizer): enhance Cytoscape graph controls with multi-layout algorithms, zoom, and image export`
+- `379f07a` - `feat(visualizer): add comprehensive state/edge inspector and animated counterexample witness trace stepper`
+- `docs: add Day 9 FSM visualization refinements and graph inspection engineering log`
+
+#### 4. Reflections & Next Steps for Day 10
+- *Reflection*: The animated trajectory stepper provides an intuitive "attacker walkthrough" experience that professors and examiners can instantly understand.
+- *Tomorrow's Goal (Day 10)*: AWS Cloud Free Tier Integration & Infrastructure layer (`backend/cloud/`): DynamoDB NoSQL repository adapter, CloudWatch metric logger for verification latency, and S3 policy backup exporter.
+
 ---
 
-*(Days 9 through 15 are documented in subsequent log entries.)*
+*(Days 10 through 15 are documented in subsequent log entries.)*
+
 
 
 
