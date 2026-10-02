@@ -270,8 +270,16 @@ function renderVerificationResults(report) {
           <span class="badge" style="background:#451a03; color:#fdba74;">${v.rule_id || v.state || "Structural"}</span>
         </div>
         <p style="margin-bottom: 6px; font-weight: 500;">${escapeHtml(v.message)}</p>
-        <p style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">${escapeHtml(v.explanation)}</p>
-        ${v.witness_path ? `<div class="witness-path-badge">Counterexample Trace: ${v.witness_path.join(" &rarr; ")}</div>` : ""}
+        ${v.witness_path && v.witness_path.length > 1 ? `
+          <div style="margin: 8px 0 10px 0;">
+            <div class="witness-path-badge">Counterexample Trace: ${v.witness_path.join(" &rarr; ")}</div>
+            <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-primary" onclick='highlightWitnessTrace(${JSON.stringify(v.witness_path)})'>Highlight Trace</button>
+              <button class="btn btn-sm" onclick='animateWitnessTrace(${JSON.stringify(v.witness_path)})'>Animate Trajectory</button>
+              <button class="btn btn-sm" onclick='clearTraceHighlights()'>Reset View</button>
+            </div>
+          </div>
+        ` : (v.witness_path ? `<div class="witness-path-badge">Counterexample Trace: ${v.witness_path.join(" &rarr; ")}</div>` : "")}
         ${v.remediation ? `<div class="remediation-box"><strong>Remediation:</strong> ${escapeHtml(v.remediation)}</div>` : ""}
       `;
       violationsContainer.appendChild(card);

@@ -120,7 +120,18 @@
               <div class="legend-item"><span class="legend-color" style="background:#7f1d1d;"></span> ACCESS_DENIED</div>
               <div class="legend-item"><span class="legend-color" style="background:#ef4444;"></span> Violation Path / Trap</div>
               <div class="legend-item" id="node-inspector-details" style="margin-left: auto; color: #38bdf8;">
-                Click any state node to inspect formal degrees.
+                Click any state or transition edge to inspect formal degrees.
+              </div>
+            </div>
+
+            <!-- Formal Automaton State & Transition Inspector -->
+            <div id="graph-inspector-panel" class="inspector-box" style="display: none; margin-top: 12px;">
+              <div class="inspector-header">
+                <span id="inspector-title" class="inspector-heading">Automaton Inspector</span>
+                <button class="btn btn-sm" onclick="closeInspector()">Close</button>
+              </div>
+              <div id="inspector-content" class="inspector-body">
+                <!-- Dynamically populated on node/edge click -->
               </div>
             </div>
 
