@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 import time
 
-from backend.api import policy_router, experiments_router
+from backend.api import policy_router, experiments_router, cloud_router
 
 # Configure clean logging format
 logging.basicConfig(
@@ -66,6 +66,7 @@ async def audit_and_timing_middleware(request: Request, call_next):
 # Include API Routers
 app.include_router(policy_router, prefix="/api")
 app.include_router(experiments_router, prefix="/api")
+app.include_router(cloud_router, prefix="/api")
 
 
 @app.get("/health", tags=["System"])

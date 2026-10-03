@@ -38,6 +38,7 @@ credentials.json
 *.db
 *.sqlite3
 *.log
+backups/
 experiments/results/*.csv
 experiments/results/*.json
 !experiments/results/.gitkeep

@@ -251,9 +251,41 @@
     <section id="tab-cloud" class="tab-content">
       <div class="card">
         <div class="card-header">
-          <h2>AWS Free Tier Cloud Deployment Architecture</h2>
+          <h2>AWS Free Tier Cloud Deployment & Operations</h2>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm btn-primary" onclick="triggerS3Backup()">Backup to S3</button>
+            <button class="btn btn-sm" onclick="sendTestCloudWatchMetric()">Test CloudWatch</button>
+            <button class="btn btn-sm" onclick="loadCloudInfrastructureStatus()">Refresh</button>
+          </div>
         </div>
         <div class="card-body">
+          <!-- Live Service Status Ribbon -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px;">
+            <div style="background: #172033; padding: 10px 14px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">Storage Backend</div>
+              <div id="cloud-storage-val" style="font-weight: 600; font-size: 14px; color: #86efac; margin-top: 2px;">Checking...</div>
+            </div>
+            <div style="background: #172033; padding: 10px 14px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">Active Region</div>
+              <div id="cloud-region-val" style="font-weight: 600; font-size: 14px; color: #38bdf8; margin-top: 2px;">us-east-1</div>
+            </div>
+            <div style="background: #172033; padding: 10px 14px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">CloudWatch Metrics</div>
+              <div id="cloud-cw-val" style="font-weight: 600; font-size: 14px; color: #38bdf8; margin-top: 2px;">Checking...</div>
+            </div>
+            <div style="background: #172033; padding: 10px 14px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">S3 Backup Archiver</div>
+              <div id="cloud-s3-val" style="font-weight: 600; font-size: 14px; color: #38bdf8; margin-top: 2px;">Checking...</div>
+            </div>
+            <div style="background: #172033; padding: 10px 14px; border-radius: 4px; border: 1px solid var(--border-color);">
+              <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">Monthly Hosting Cost</div>
+              <div style="font-weight: 600; font-size: 14px; color: #22c55e; margin-top: 2px;">$0.00 / month</div>
+            </div>
+          </div>
+
+          <!-- Operations Output Console -->
+          <div id="cloud-ops-console" style="display: none; margin-bottom: 16px; background: #090d16; border: 1px solid #38bdf8; border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 12px; color: #38bdf8; white-space: pre-wrap;"></div>
+
           <p style="color: #cbd5e1; margin-bottom: 16px;">
             Designed to run entirely within the <strong>AWS Free Tier</strong> ($0/month hosting cost) using standard cloud patterns:
           </p>

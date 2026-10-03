@@ -35,6 +35,8 @@ function initTabs() {
         target.classList.add("active");
         if (tab.dataset.tab === "tab-verify" && cy) {
           setTimeout(() => cy.resize(), 50);
+        } else if (tab.dataset.tab === "tab-cloud") {
+          loadCloudInfrastructureStatus();
         }
       }
     });
@@ -419,3 +421,78 @@ function escapeHtml(str) {
   if (!str) return "";
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+// AWS Cloud Operations
+async function loadCloudInfrastructureStatus() {
+  try {
+    const res = await fetch("/api/cloud/status");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const storageEl = document.getElementById("cloud-storage-val");
+    if (storageEl) {
+      storageEl.textContent = `${data.storage.configured_backend.toUpperCase()} (${data.storage.policies_stored_count} stored)`;
+    }
+
+    const regEl = document.getElementById("cloud-region-val");
+    if (regEl) regEl.textContent = data.region;
+
+    const cwEl = document.getElementById("cloud-cw-val");
+    if (cwEl) {
+      cwEl.textContent = data.cloudwatch.enabled ? (data.cloudwatch.client_connected ? "AWS Connected" : "Local Telemetry Buffer") : "Local Telemetry Buffer";
+    }
+
+    const s3El = document.getElementById("cloud-s3-val");
+    if (s3El) {
+      s3El.textContent = data.s3.s3_connected ? `S3 Connected (${data.s3.total_archives_recorded} archives)` : `Local Storage (${data.s3.total_archives_recorded} archives)`;
+    }
+  } catch (err) {
+    console.error("Failed to fetch cloud status:", err);
+  }
+}
+
+async function triggerS3Backup() {
+  const consoleEl = document.getElementById("cloud-ops-console");
+  if (consoleEl) {
+    consoleEl.style.display = "block";
+    consoleEl.textContent = "Initiating AWS S3 snapshot archive...";
+  }
+
+  try {
+    const res = await fetch("/api/cloud/s3/backup", { method: "POST" });
+    const data = await res.json();
+    if (consoleEl) {
+      consoleEl.textContent = `[SUCCESS] ${data.message}\n` +
+        `Storage Destination: ${data.backup.storage_destination.toUpperCase()}\n` +
+        `Archive Key / Path : ${data.backup.s3_uri || data.backup.local_path}\n` +
+        `Policies Archived  : ${data.backup.policies_archived}\n` +
+        `Reports Archived   : ${data.backup.reports_archived}\n` +
+        `Archive File Size  : ${data.backup.size_bytes} bytes`;
+    }
+    await loadCloudInfrastructureStatus();
+  } catch (err) {
+    if (consoleEl) consoleEl.textContent = `[ERROR] Backup failed: ${err.message}`;
+  }
+}
+
+async function sendTestCloudWatchMetric() {
+  const consoleEl = document.getElementById("cloud-ops-console");
+  if (consoleEl) {
+    consoleEl.style.display = "block";
+    consoleEl.textContent = "Publishing test verification metric to Amazon CloudWatch...";
+  }
+
+  try {
+    const res = await fetch("/api/cloud/cloudwatch/publish-test", { method: "POST" });
+    const data = await res.json();
+    if (consoleEl) {
+      consoleEl.textContent = `[SUCCESS] ${data.message}\n` +
+        `Published to AWS CloudWatch API: ${data.published_to_aws ? "YES (CloudWatch API)" : "NO (Kept in Local Telemetry Buffer)"}\n` +
+        `Total Telemetry Records Buffered: ${data.recent_metrics_count}`;
+    }
+    await loadCloudInfrastructureStatus();
+  } catch (err) {
+    if (consoleEl) consoleEl.textContent = `[ERROR] Metric test failed: ${err.message}`;
+  }
+}
+
