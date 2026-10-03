@@ -343,9 +343,61 @@
 - *Reflection*: The animated trajectory stepper provides an intuitive "attacker walkthrough" experience that professors and examiners can instantly understand.
 - *Tomorrow's Goal (Day 10)*: AWS Cloud Free Tier Integration & Infrastructure layer (`backend/cloud/`): DynamoDB NoSQL repository adapter, CloudWatch metric logger for verification latency, and S3 policy backup exporter.
 
+### DAY 10: AWS Cloud Free Tier Integration & Infrastructure Telemetry
+**Date**: September 18, 2026  
+**Objective**: Build production-grade cloud integration components for the AWS Free Tier ($0/month hosting cost) featuring Amazon DynamoDB NoSQL persistence, Amazon CloudWatch custom metrics telemetry, Amazon S3 automated snapshot archiving, and cloud management REST endpoints.
+
+#### 1. Tasks Executed
+- [x] Engineered `CloudWatchMetricsPublisher` in `backend/cloud/cloudwatch.py`:
+  - Publishes 4 custom verification metrics to namespace `ZTPVE/VerificationEngine`:
+    - `VerificationLatencyMs` (formal check computation duration in ms).
+    - `ViolationsDetected` (total count of invariant failures).
+    - `SecurityRiskScore` (quantitative risk score 0–100).
+    - `CompliancePassed` (binary compliance indicator: 1.0 or 0.0).
+  - Emits multi-dimensional telemetry tagged by `PolicyId` and `SecurityPosture`.
+  - Built an in-memory fallback ring buffer storing the last 100 verification telemetry records for offline development and local audits.
+- [x] Engineered `S3BackupArchiver` in `backend/cloud/s3.py`:
+  - Automated JSON snapshot archiving of Zero Trust policies and verification logs to S3 bucket `ztpve-policy-archives`.
+  - Manifest generator (`archive_all()`) packaging full database snapshots with timestamps and byte sizes.
+  - Automatic fallback to local directory (`./backups/`) when offline or without AWS credentials.
+- [x] Built AWS Cloud REST API in `backend/api/routes_cloud.py`:
+  - `GET /api/cloud/status`: Live status of DynamoDB, CloudWatch, S3, and AWS Free Tier allowance quotas.
+  - `POST /api/cloud/s3/backup`: On-demand backup trigger.
+  - `POST /api/cloud/cloudwatch/publish-test`: Live heartbeat metric test.
+  - `GET /api/cloud/s3/archives`: Catalog of historical archives.
+- [x] Integrated AWS Cloud Operations controls into web dashboard (`frontend/index.html` & `frontend/js/app.js`):
+  - Added live status cards for storage, region, CloudWatch telemetry, and S3 status on `#tab-cloud`.
+  - Added interactive "Backup to S3" and "Test CloudWatch" buttons with a live operation console output.
+- [x] Built comprehensive unit test suite in `backend/tests/test_cloud.py` (8 tests with mock clients and local fallbacks; total test suite increased from 44 to 52 passing tests).
+
+#### 2. AWS Free Tier Cost & Capacity Analysis (Student Research Notes)
+| AWS Service | Architecture Function | Free Tier Capacity | Project Utilization | Net Monthly Cost |
+|---|---|---|---|---|
+| **Amazon DynamoDB** | Zero Trust Policy & Audit Store | 25 RCU / 25 WCU, 25 GB Storage | ~5 RCU / ~5 WCU, < 50 MB Storage | **$0.00** |
+| **AWS Lambda / EC2 t2.micro** | FastAPI Verification Engine | 1M invocations / 750 EC2 compute hrs | ~50,000 requests / month | **$0.00** |
+| **Amazon CloudWatch** | Invariant Failure Alarms & Latency Telemetry | 10 custom metrics, 5 GB log ingestion | 4 custom metrics, ~100 MB logs | **$0.00** |
+| **Amazon S3** | Static UI Hosting & Snapshot Archiving | 5 GB standard storage, 20,000 GET / 2,000 PUT | ~20 MB storage, ~500 operations | **$0.00** |
+| **Total Cloud Expense** | &mdash; | &mdash; | &mdash; | **$0.00 / month** |
+
+#### 3. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Zero-Cost Perpetual Free Tier Compliance**  
+  *Rationale*: Academic projects must avoid unexpected cloud billing. By leveraging DynamoDB (25 RCU/WCU perpetual free tier) and capping CloudWatch metrics at 4 (under the 10 metric free limit), the verification engine runs forever at \$0.00/month.
+- **Decision 2: Dual S3 / Local Filesystem Storage Strategy**  
+  *Rationale*: Evaluating examiners or students running the codebase on their local laptops without an AWS account should not experience broken workflows or crashed endpoints. The archiver automatically defaults to `./backups` if boto3 detects missing AWS credentials.
+
+#### 4. Git Commits for Day 10
+- `2a1bc63` - `feat(cloud): implement AWS CloudWatch metrics publisher and S3 policy backup archiver with offline fallback`
+- `a84f520` - `feat(api): add AWS cloud infrastructure REST routes and interactive dashboard management controls`
+- `docs: add Day 10 AWS Cloud Free Tier integration engineering log and cost analysis`
+
+#### 5. Reflections & Next Steps for Day 11
+- *Reflection*: Adding CloudWatch telemetry bridges abstract automata checks with real-world enterprise SIEM/monitoring systems.
+- *Tomorrow's Goal (Day 11)*: Deepen database persistence layer (`backend/storage/`): SQLite schema indexes, DynamoDB single-table design patterns, and cross-backend data consistency verification.
+
 ---
 
-*(Days 10 through 15 are documented in subsequent log entries.)*
+*(Days 11 through 15 are documented in subsequent log entries.)*
+
 
 
 
