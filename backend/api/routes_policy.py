@@ -13,6 +13,7 @@ from backend.models.policy import ZeroTrustPolicy
 from backend.models.report import VerificationReport
 from backend.core.verifier import ZeroTrustVerificationEngine
 from backend.storage import get_repository, PolicyRepository
+from backend.cloud import get_cloudwatch_publisher
 
 router = APIRouter(prefix="/policies", tags=["Zero Trust Policies"])
 verifier = ZeroTrustVerificationEngine()
@@ -34,6 +35,10 @@ def verify_policy(
             repo.save_report(report)
         except Exception:
             pass  # Non-blocking for audit logging
+    try:
+        get_cloudwatch_publisher().publish_verification_metrics(report)
+    except Exception:
+        pass  # Non-blocking telemetry
     return report
 
 
