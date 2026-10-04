@@ -17,4 +17,14 @@ def get_repository() -> PolicyRepository:
     return SQLitePolicyRepository(db_path=db_path)
 
 
-__all__ = ["PolicyRepository", "SQLitePolicyRepository", "DynamoDBPolicyRepository", "get_repository"]
+from backend.storage.migration import initialize_sqlite_database, migrate_data
+
+__all__ = [
+    "PolicyRepository",
+    "SQLitePolicyRepository",
+    "DynamoDBPolicyRepository",
+    "get_repository",
+    "initialize_sqlite_database",
+    "migrate_data"
+]
+
