@@ -37,6 +37,10 @@ class DynamoDBPolicyRepository(PolicyRepository):
     def save_policy(self, policy: ZeroTrustPolicy) -> ZeroTrustPolicy:
         try:
             item = {
+                "PK": f"POLICY#{policy.policy_id}",
+                "SK": "METADATA",
+                "GSI1PK": "TYPE#POLICY",
+                "GSI1SK": policy.policy_name,
                 "policy_id": policy.policy_id,
                 "policy_name": policy.policy_name,
                 "description": policy.description or "",
@@ -51,8 +55,16 @@ class DynamoDBPolicyRepository(PolicyRepository):
 
     def get_policy(self, policy_id: str) -> Optional[ZeroTrustPolicy]:
         try:
+            # Query by partition key PK or legacy policy_id
             response = self.policy_table.get_item(Key={"policy_id": policy_id})
             item = response.get("Item")
+            if not item:
+                # Try single-table key
+                try:
+                    resp_st = self.policy_table.get_item(Key={"PK": f"POLICY#{policy_id}", "SK": "METADATA"})
+                    item = resp_st.get("Item")
+                except Exception:
+                    pass
             if item:
                 return ZeroTrustPolicy.model_validate(json.loads(item["data"]))
             return None
@@ -66,7 +78,8 @@ class DynamoDBPolicyRepository(PolicyRepository):
             items = response.get("Items", [])
             policies = []
             for item in items:
-                policies.append(ZeroTrustPolicy.model_validate(json.loads(item["data"])))
+                if "data" in item:
+                    policies.append(ZeroTrustPolicy.model_validate(json.loads(item["data"])))
             return policies
         except (ClientError, NoCredentialsError) as e:
             logger.error(f"Failed to scan DynamoDB policies: {e}")
@@ -83,6 +96,10 @@ class DynamoDBPolicyRepository(PolicyRepository):
     def save_report(self, report: VerificationReport) -> VerificationReport:
         try:
             item = {
+                "PK": f"POLICY#{report.policy_id}",
+                "SK": f"REPORT#{report.timestamp}",
+                "GSI1PK": "TYPE#REPORT",
+                "GSI1SK": report.timestamp,
                 "report_id": f"{report.policy_id}#{report.timestamp}",
                 "policy_id": report.policy_id,
                 "policy_name": report.policy_name,
@@ -103,8 +120,26 @@ class DynamoDBPolicyRepository(PolicyRepository):
             items = response.get("Items", [])
             reports = []
             for item in items:
-                reports.append(VerificationReport.model_validate(json.loads(item["report_data"])))
+                if "report_data" in item:
+                    reports.append(VerificationReport.model_validate(json.loads(item["report_data"])))
             return reports
         except (ClientError, NoCredentialsError) as e:
             logger.error(f"Failed to scan DynamoDB reports: {e}")
             return []
+
+    def get_reports_for_policy(self, policy_id: str, limit: int = 20) -> List[VerificationReport]:
+        """Retrieves audit reports specifically for policy_id."""
+        try:
+            # Query using partition key or filtered scan
+            reports = [r for r in self.list_reports(limit=100) if r.policy_id == policy_id]
+            return reports[:limit]
+        except Exception as e:
+            logger.error(f"Failed to get reports for policy '{policy_id}': {e}")
+            return []
+
+    def count_policies(self) -> int:
+        return len(self.list_policies())
+
+    def count_reports(self) -> int:
+        return len(self.list_reports(limit=1000))
+

@@ -39,3 +39,16 @@ class PolicyRepository(ABC):
     def list_reports(self, limit: int = 50) -> List[VerificationReport]:
         """Retrieves past verification reports."""
         pass
+
+    def get_reports_for_policy(self, policy_id: str, limit: int = 20) -> List[VerificationReport]:
+        """Retrieves past verification reports specifically for a given policy ID."""
+        return [r for r in self.list_reports(limit=100) if r.policy_id == policy_id][:limit]
+
+    def count_policies(self) -> int:
+        """Returns total count of stored policies."""
+        return len(self.list_policies())
+
+    def count_reports(self) -> int:
+        """Returns total count of recorded audit reports."""
+        return len(self.list_reports(limit=1000))
+

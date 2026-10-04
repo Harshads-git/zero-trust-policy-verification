@@ -45,6 +45,12 @@ class SQLitePolicyRepository(PolicyRepository):
                     report_data JSON NOT NULL
                 );
             """)
+            # Schema Performance Optimization Indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_policies_created_at ON policies(created_at DESC);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_policies_name ON policies(policy_name);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_policy_id ON verification_reports(policy_id);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON verification_reports(timestamp DESC);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_valid ON verification_reports(valid);")
             conn.commit()
 
     def save_policy(self, policy: ZeroTrustPolicy) -> ZeroTrustPolicy:
@@ -122,3 +128,37 @@ class SQLitePolicyRepository(PolicyRepository):
             for row in cursor.fetchall():
                 reports.append(VerificationReport.model_validate(json.loads(row["report_data"])))
         return reports
+
+    def get_reports_for_policy(self, policy_id: str, limit: int = 20) -> List[VerificationReport]:
+        """Index-accelerated query for verification reports belonging to a specific policy."""
+        reports = []
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT report_data FROM verification_reports WHERE policy_id = ? ORDER BY id DESC LIMIT ?",
+                (policy_id, limit)
+            )
+            for row in cursor.fetchall():
+                reports.append(VerificationReport.model_validate(json.loads(row["report_data"])))
+        return reports
+
+    def count_policies(self) -> int:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM policies")
+            return cursor.fetchone()[0]
+
+    def count_reports(self) -> int:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM verification_reports")
+            return cursor.fetchone()[0]
+
+    def clear_all(self) -> None:
+        """Purges all records (used for test isolation)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM verification_reports")
+            cursor.execute("DELETE FROM policies")
+            conn.commit()
+
