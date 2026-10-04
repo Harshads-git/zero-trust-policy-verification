@@ -394,9 +394,54 @@
 - *Reflection*: Adding CloudWatch telemetry bridges abstract automata checks with real-world enterprise SIEM/monitoring systems.
 - *Tomorrow's Goal (Day 11)*: Deepen database persistence layer (`backend/storage/`): SQLite schema indexes, DynamoDB single-table design patterns, and cross-backend data consistency verification.
 
+### DAY 11: Database Persistence Deep-Dive, Schema Indexes & Storage Parity
+**Date**: September 19, 2026  
+**Objective**: Optimize local and cloud persistence architectures with SQLite performance indexes, DynamoDB single-table design partitioning, cross-backend contractual parity, and lossless data migration utilities.
+
+#### 1. Tasks Executed
+- [x] Extended `PolicyRepository` base contract in `backend/storage/base.py`:
+  - Added policy-filtered report query: `get_reports_for_policy(policy_id, limit)`.
+  - Added aggregated database counters: `count_policies()` and `count_reports()`.
+- [x] Engineered B-Tree Performance Indexes in `backend/storage/sqlite_store.py`:
+  - `idx_policies_created_at`: Accelerates reverse chronological policy listing.
+  - `idx_policies_name`: Fast substring / exact-name lookups.
+  - `idx_reports_policy_id`: Filters historical audits by policy identifier in $\mathcal{O}(\log N)$ time.
+  - `idx_reports_timestamp`: Chronological audit window sorting.
+  - `idx_reports_valid`: Compliance audit aggregation filtering.
+- [x] Implemented Amazon DynamoDB Single-Table Design Partitioning in `backend/storage/dynamodb_store.py`:
+  - Canonical Partition Key (`PK = POLICY#<policy_id>`) and Sort Key (`SK = METADATA` for policy specifications, `SK = REPORT#<timestamp>` for audit runs).
+  - Global Secondary Index (GSI1) with `GSI1PK = TYPE#POLICY` / `TYPE#REPORT` and `GSI1SK` for cross-entity collection queries.
+  - Maintained backward compatibility with flat key lookups.
+- [x] Built cross-backend database migration utility in `backend/storage/migration.py`:
+  - `initialize_sqlite_database()`: Zero-configuration schema initialization.
+  - `create_dynamodb_tables_if_not_exist()`: Free Tier on-demand DynamoDB table provisioning.
+  - `migrate_data(source_repo, target_repo)`: Lossless bi-directional policy and audit report transfer.
+- [x] Developed comprehensive storage consistency test suite in `backend/tests/test_storage_consistency.py`:
+  - Verified presence of all 5 schema indexes in `sqlite_master`.
+  - Tested policy-filtered audit queries, counting methods, and test isolation purges.
+  - Verified lossless migration preserving all rules, states, and verification details.
+  - Verified DynamoDB single-table key injection.
+  - Total test suite expanded to **57 passing tests**.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: B-Tree Index Acceleration on Audit Reports**  
+  *Rationale*: In high-throughput Zero Trust environments where policies are verified upon every pull request or user access attempt, the `verification_reports` table grows rapidly. Adding composite indexes (`policy_id`, `timestamp DESC`) prevents table scans during audit log retrieval.
+- **Decision 2: Single-Table Design Pattern for NoSQL Persistence**  
+  *Rationale*: Following AWS DynamoDB best practices, embedding `PK` and `SK` prefixes (`POLICY#`, `REPORT#`) enables co-locating a policy and all its historical verification reports in the same physical storage partition, allowing atomic queries with minimal read capacity units (RCU).
+
+#### 3. Git Commits for Day 11
+- `a0c1321` - `feat(storage): optimize SQLite schema indexes and implement policy-filtered audit query interface`
+- `97e9584` - `feat(storage): add database migration utility and cross-backend data consistency verification`
+- `docs: add Day 11 database persistence deep-dive and single-table design engineering log`
+
+#### 4. Reflections & Next Steps for Day 12
+- *Reflection*: Having cross-backend parity guarantees that transitioning from local prototype demonstrations to AWS cloud deployments requires zero code changes outside of setting `STORAGE_BACKEND=dynamodb`.
+- *Tomorrow's Goal (Day 12)*: Security hardening & least-privilege IAM policies (`backend/security/`): JSON bomb / recursion payload sanitization, FastAPI rate limiting middleware, and automated AWS IAM least-privilege policy generation.
+
 ---
 
-*(Days 11 through 15 are documented in subsequent log entries.)*
+*(Days 12 through 15 are documented in subsequent log entries.)*
+
 
 
 
