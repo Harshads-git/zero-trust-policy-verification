@@ -14,6 +14,7 @@ from backend.models.report import VerificationReport
 from backend.core.verifier import ZeroTrustVerificationEngine
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
+from backend.security import PolicySanitizer
 
 router = APIRouter(prefix="/policies", tags=["Zero Trust Policies"])
 verifier = ZeroTrustVerificationEngine()
@@ -29,6 +30,7 @@ def verify_policy(
     Formally evaluates a Zero Trust policy using Finite State Machine invariants.
     Returns structured verification report with violations, counterexamples, and graph data.
     """
+    policy = PolicySanitizer.sanitize_policy(policy)
     report = verifier.verify(policy)
     if save_audit:
         try:
@@ -48,6 +50,7 @@ def create_policy(
     repo: PolicyRepository = Depends(get_repository)
 ) -> Dict[str, Any]:
     """Saves policy to storage and runs formal verification."""
+    policy = PolicySanitizer.sanitize_policy(policy)
     saved = repo.save_policy(policy)
     report = verifier.verify(saved)
     repo.save_report(report)
