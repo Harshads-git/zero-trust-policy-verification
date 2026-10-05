@@ -438,9 +438,57 @@
 - *Reflection*: Having cross-backend parity guarantees that transitioning from local prototype demonstrations to AWS cloud deployments requires zero code changes outside of setting `STORAGE_BACKEND=dynamodb`.
 - *Tomorrow's Goal (Day 12)*: Security hardening & least-privilege IAM policies (`backend/security/`): JSON bomb / recursion payload sanitization, FastAPI rate limiting middleware, and automated AWS IAM least-privilege policy generation.
 
+### DAY 12: Security Hardening, Rate Limiting & Least-Privilege IAM Policies
+**Date**: September 20, 2026  
+**Objective**: Fortify the verification engine against adversarial input vectors (JSON recursion bombs, prototype pollution, script injection, DoS loops) and implement automated NIST SP 800-207 least-privilege AWS IAM policies.
+
+#### 1. Tasks Executed
+- [x] Engineered `PolicySanitizer` in `backend/security/sanitizer.py`:
+  - Enforced maximum nesting depth limit ($\le 8$ levels) to neutralize stack-overflow and JSON bomb DoS vectors.
+  - Pattern-based rejection of script injection sequences (`<script>`, `javascript:`, `onerror=`, `eval()`).
+  - Strict null byte (`\x00`) poisoning detection and HTML entity escaping on all user-supplied string fields.
+  - Upper-bound rule ceiling enforcement ($\le 5000$ rules) and identifier character length restrictions ($\le 128$ chars).
+- [x] Integrated input sanitization directly into core FastAPI policy routes (`backend/api/routes_policy.py`).
+- [x] Built Sliding-Window Rate Limiting Middleware in `backend/security/rate_limiter.py`:
+  - Tracks client request frequencies over a 60-second sliding window per IP address.
+  - Emits standards-compliant rate limit telemetry headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`.
+  - Rejects abusive traffic bursts with HTTP 429 `Too Many Requests` and standard `Retry-After` header.
+  - Exempts static web assets and health probes (`/health`, `/static`).
+- [x] Engineered NIST SP 800-207 Zero Trust IAM Generator in `backend/security/iam_generator.py`:
+  - Synthesizes tightly constrained AWS IAM JSON policy documents eliminating all wildcard (`*`) administrative entitlements.
+  - Explicitly scopes DynamoDB table ARNs, S3 bucket and object ARNs, and CloudWatch namespace conditions.
+  - Generates IAM Trust Relationship policy documents for AWS Lambda and EC2 assume role execution.
+  - Exposed via `GET /api/cloud/iam-policy` endpoint.
+- [x] Developed comprehensive security test suite in `backend/tests/test_security.py` (8 tests validating payload sanitization, nested recursion limits, rate limiter windowing, and IAM JSON compliance; test suite expanded to **65 passing tests**).
+
+#### 2. Threat Modeling & Defense Matrix (Student Security Analysis)
+| Threat / Attack Vector | Impact Scenario | Defense Mechanism | Mitigation Status |
+|---|---|---|---|
+| **JSON Recursion Bomb** | CPU spike / Python recursion stack exhaustion | Recursive depth ceiling ($\le 8$ levels) in `PolicySanitizer` | **Blocked (HTTP 400)** |
+| **XSS / HTML Payload Injection** | Malicious script stored in policy names / witness logs | Regex filter for `<script>`, `onerror=`, HTML entity escape | **Blocked (HTTP 400)** |
+| **Null Byte Poisoning** | C-string termination attacks / storage bypass | Explicit `\x00` check across all strings | **Blocked (HTTP 400)** |
+| **Brute-Force Verification DoS** | Resource exhaustion on CPU-heavy graph traversals | Sliding-window rate limiter ($120$ req/min) | **Throttled (HTTP 429)** |
+| **Over-Privileged Cloud IAM Roles** | Compromised backend leading to AWS resource takeover | Resource-scoped IAM policy generation (NIST SP 800-207) | **Remediated (PoLP)** |
+
+#### 3. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Fail-Closed Input Sanitization**  
+  *Rationale*: In a Zero Trust security tool, accepting malformed or suspicious inputs is unacceptable. Rather than silently stripping dangerous characters, the sanitizer fails immediately with an informative `PolicySanitizationError` so administrators are alerted to tampering attempts.
+- **Decision 2: Automated Scoped IAM Generation over Manual Policies**  
+  *Rationale*: Cloud misconfigurations account for over 80% of enterprise cloud breaches. Providing an automated least-privilege IAM policy generator ensures students and DevOps teams never deploy with permissive `AdministratorAccess` or wildcard `dynamodb:*` / `s3:*` entitlements.
+
+#### 4. Git Commits for Day 12
+- `1fad5e6` - `feat(security): implement policy input sanitizer and AWS least-privilege IAM policy generator`
+- `fafdb39` - `feat(security): add sliding-window rate limiting middleware and security governance API endpoints`
+- `docs: add Day 12 security hardening, rate limiting, and least-privilege IAM engineering log`
+
+#### 5. Reflections & Next Steps for Day 13
+- *Reflection*: The rate limiting and input sanitization layer transforms the engine from an academic prototype into a production-hardened API.
+- *Tomorrow's Goal (Day 13)*: Testing dataset scaling & empirical benchmarks (`backend/experiments/`): Synthetic policy generator scaling up to 1,000+ rules, statistical latency percentiles (p50, p95, p99), and empirical scalability documentation.
+
 ---
 
-*(Days 12 through 15 are documented in subsequent log entries.)*
+*(Days 13 through 15 are documented in subsequent log entries.)*
+
 
 
 
