@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 import time
 
 from backend.api import policy_router, experiments_router, cloud_router
+from backend.security import RateLimitMiddleware
 
 # Configure clean logging format
 logging.basicConfig(
@@ -48,6 +49,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Sliding Window Rate Limiting (DoS & brute-force defense)
+rate_limit_rpm = int(os.getenv("RATE_LIMIT_PER_MINUTE", "120"))
+app.add_middleware(RateLimitMiddleware, requests_per_minute=rate_limit_rpm)
 
 
 @app.middleware("http")

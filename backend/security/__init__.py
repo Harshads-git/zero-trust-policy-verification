@@ -10,11 +10,15 @@ from backend.security.sanitizer import (
     MAX_RULES_COUNT
 )
 from backend.security.iam_generator import IAMLeastPrivilegePolicyGenerator
+from backend.security.rate_limiter import SlidingWindowRateLimiter, RateLimitMiddleware
 
 __all__ = [
     "PolicySanitizer",
     "PolicySanitizationError",
     "MAX_NESTING_DEPTH",
     "MAX_RULES_COUNT",
-    "IAMLeastPrivilegePolicyGenerator"
+    "IAMLeastPrivilegePolicyGenerator",
+    "SlidingWindowRateLimiter",
+    "RateLimitMiddleware"
 ]
+

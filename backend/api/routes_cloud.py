@@ -86,3 +86,28 @@ def publish_test_metric() -> Dict[str, Any]:
         "published_to_aws": success,
         "recent_metrics_count": len(cw.in_memory_metrics)
     }
+
+
+@router.get("/iam-policy", summary="Generate NIST SP 800-207 least-privilege IAM policy document")
+def get_least_privilege_iam_policy(
+    account_id: str = "123456789012"
+) -> Dict[str, Any]:
+    """
+    Returns tailored AWS IAM least-privilege policy document restricting access
+    to specific DynamoDB tables, S3 bucket prefixes, and CloudWatch metrics.
+    """
+    from backend.security import IAMLeastPrivilegePolicyGenerator
+    generator = IAMLeastPrivilegePolicyGenerator(
+        account_id=account_id,
+        region=os.getenv("AWS_REGION", "us-east-1"),
+        dynamodb_table=os.getenv("DYNAMODB_TABLE_NAME", "zero_trust_policies"),
+        reports_table=os.getenv("DYNAMODB_AUDIT_TABLE", "zero_trust_audit_reports"),
+        s3_bucket=os.getenv("S3_BACKUP_BUCKET", "ztpve-policy-archives"),
+        cloudwatch_namespace=os.getenv("CLOUDWATCH_NAMESPACE", "ZTPVE/VerificationEngine")
+    )
+    return {
+        "description": "NIST SP 800-207 Zero Trust Least-Privilege IAM Policy for ZTPVE",
+        "iam_policy": generator.generate_app_iam_policy(),
+        "assume_role_trust_policy": generator.generate_assume_role_trust_policy()
+    }
+
