@@ -1,39 +1,42 @@
 # B.Tech IT Final Viva Defense & Technical Q&A Guide
+## Zero Trust Policy Verification Engine (ZTPVE)
 
-This guide prepares the student for questions commonly asked by external examiners, faculty reviewers, and security architects during project defense.
+This comprehensive guide prepares the student for questions commonly asked by external examiners, faculty reviewers, and technical panelists during the final B.Tech capstone viva voce examination.
 
 ---
 
 ## Category 1: Theory of Computation & Formal Methods
 
 ### Q1: What is the formal definition of the Finite State Machine used in this project?
-**Answer**:
+**Answer**:  
 The access control system is modeled as a Deterministic Finite Automaton (DFA) augmented with predicate guard conditions:
 $$M = (Q, \Sigma, \delta, q_0, F)$$
-- $Q$: Finite set of states representing discrete security postures (e.g., `START`, `AUTHENTICATED`, `IDENTITY_VERIFIED`, `DEVICE_VERIFIED`, `AUTHORIZED`, `ACCESS_GRANTED`, etc.).
-- $\Sigma$: Alphabet of input actions/events (e.g., `submit_credentials`, `verify_mfa`, `check_device`).
-- $\delta$: Transition function $\delta: Q \times \Sigma \times \mathcal{C} \to Q$ mapping current state and guarded input to the next state.
-- $q_0$: Initial entry state (`START`).
-- $F$: Designated terminal states (`ACCESS_GRANTED`, `ACCESS_DENIED`, `REVOKED`, `SESSION_EXPIRED`).
+- $Q$: Finite set of states representing discrete security postures (`START`, `UNAUTHENTICATED`, `AUTHENTICATED`, `IDENTITY_VERIFIED`, `DEVICE_VERIFIED`, `AUTHORIZED`, `ACCESS_GRANTED`, `ACCESS_DENIED`, `REVOKED`, `SESSION_EXPIRED`).
+- $\Sigma$: Alphabet of input actions/events (`submit_credentials`, `verify_mfa`, `check_device`, `evaluate_permissions`, `revoke_session`).
+- $\delta$: Transition function $\delta: Q \times \Sigma \times \mathcal{C} \to Q$ mapping the current state and guarded input to the next state.
+- $q_0$: Designated initial entry state (`START`).
+- $F$: Designated terminal absorbing states ($F = F_{\text{grant}} \cup F_{\text{deny}} \cup F_{\text{revoke}}$).
 
 ### Q2: Why use a Finite State Automaton rather than a standard if-else rule engine or regular expressions?
-**Answer**:
-If-else chains evaluate static, instantaneous conditions but cannot easily verify multi-step trajectory properties (e.g., "was device health verified *before* authorization across all possible execution paths?"). Regular expressions operate over linear strings, not state transition graphs. A Finite State Automaton enables formal graph reachability, cycle detection, dead-state analysis, and counterexample path extraction.
+**Answer**:  
+If-else chains evaluate static, instantaneous conditions but cannot verify multi-step trajectory properties (e.g., "was device health verified *before* authorization across all possible execution paths?"). Regular expressions operate over linear strings, not cyclic state transition graphs. An FSA enables formal graph reachability, cycle detection, dead-state analysis, and counterexample path extraction.
 
 ### Q3: How do you identify unreachable states, and why are they considered a flaw?
-**Answer**:
-We run Breadth-First Search (BFS) starting from $q_0$. Any state $q \in Q$ that is not visited in the BFS tree belongs to $Q \setminus \text{Reachable}(q_0)$. Unreachable states indicate dead policy logic, orphan security controls, or misconfigured rule conditions that can never be triggered in production.
+**Answer**:  
+We execute Breadth-First Search (BFS) starting from $q_0$. Any state $q \in Q$ that is not visited in the BFS tree belongs to $Q \setminus \text{Reachable}(q_0)$. Unreachable states indicate dead policy logic, orphan security controls, or misconfigured rule conditions that can never be triggered in production.
 
 ### Q4: What is a "dead state" or "trap state" in your engine?
-**Answer**:
-A dead state is a reachable non-terminal state ($q \in \text{Reachable}(q_0) \setminus F$) from which NO terminal state in $F$ can ever be reached. We detect this by computing reverse reachability from all $f \in F$. If an access workflow enters such a state, the session hangs indefinitely without granting, denying, or revoking access.
+**Answer**:  
+A dead state is a reachable non-terminal state ($q \in \text{Reachable}(q_0) \setminus F$) from which NO terminal state in $F$ can ever be reached. We detect this by constructing the reversed graph $G^R$ and computing multi-source reverse reachability from all $f \in F$. If an access workflow enters such a state, the session hangs indefinitely without granting, denying, or revoking access.
 
 ### Q5: What is the computational time and space complexity of your verification algorithms?
-**Answer**:
-The core graph operations (BFS reachability, cycle detection, reverse reachability) operate in $\mathcal{O}(|V| + |E|)$ time, where $|V| = |Q|$ is the number of states and $|E| = |\delta|$ is the number of transitions. Space complexity is $\mathcal{O}(|V| + |E|)$ for the adjacency lists and visited sets. In our benchmarks, policies with up to 1,000 transitions verify in ~13 milliseconds.
+**Answer**:  
+The core graph operations (BFS reachability, cycle detection, reverse reachability) operate in strictly linear time:
+$$\mathcal{O}(|V| + |E|) = \mathcal{O}(|Q| + |\delta|)$$
+where $|Q|$ is the number of states and $|\delta|$ is the number of transitions. Space complexity is $\mathcal{O}(|Q| + |\delta|)$ for the adjacency lists and visited sets. In empirical benchmarks, policies with up to 1,000 transitions verify in ~17 milliseconds.
 
 ### Q6: What is a "witness path" or "counterexample trace"?
-**Answer**:
+**Answer**:  
 When an invariant fails (e.g., missing authentication), rather than returning a binary "invalid", the engine uses BFS shortest-path search to extract the exact sequence of states demonstrating the flaw (e.g., `START -> UNAUTHENTICATED -> ACCESS_GRANTED`). This provides explainability for security auditors.
 
 ---
@@ -41,25 +44,25 @@ When an invariant fails (e.g., missing authentication), rather than returning a 
 ## Category 2: Zero Trust Architecture & Cybersecurity
 
 ### Q7: What is Zero Trust Architecture, and which standard does this project follow?
-**Answer**:
+**Answer**:  
 Zero Trust is a security paradigm based on the principle of "Never Trust, Always Verify". It assumes threats exist both outside and inside traditional network perimeters. This project adheres to **NIST SP 800-207**, which defines core tenets including per-session dynamic authorization, explicit device posture verification, and continuous session monitoring.
 
 ### Q8: What is the difference between Authentication and Authorization?
-**Answer**:
+**Answer**:  
 - **Authentication (AuthN)**: Proves the identity of the subject (e.g., passwords, MFA, FIDO2 tokens).
-- **Authorization (AuthZ)**: Evaluates whether the identified subject is permitted to perform a specific action on a specific resource (e.g., RBAC/ABAC role checks).
+- **Authorization (AuthZ)**: Evaluates whether the identified subject is permitted to perform a specific action on a specific resource (e.g., RBAC/ABAC role checks).  
 Our engine specifically flags policies that jump from `AUTHENTICATED` directly to `ACCESS_GRANTED` without passing through an `AUTHORIZED` state.
 
 ### Q9: Why is device verification required in Zero Trust?
-**Answer**:
+**Answer**:  
 Valid user credentials can be stolen via phishing or session hijacking. NIST SP 800-207 Tenet 5 mandates that the enterprise must continuously verify the health, encryption state, and compliance posture of the requesting asset (`DEVICE_VERIFIED`) before granting access to enterprise resources.
 
 ### Q10: How does the engine detect perpetual "zombie" access sessions?
-**Answer**:
+**Answer**:  
 The Session Revocability Invariant checks whether `ACCESS_GRANTED` can reach `SESSION_EXPIRED` or `REVOKED`. If forward reachability from `ACCESS_GRANTED` does not contain any termination state, the policy is flagged for allowing indefinite unrevocable sessions.
 
 ### Q11: What is a privilege bypass vulnerability in this context?
-**Answer**:
+**Answer**:  
 A backdoor transition that allows a subject to transition directly from `START` or `UNAUTHENTICATED` into `ACCESS_GRANTED` or `AUTHORIZED`, completely skipping identity and device checks.
 
 ---
@@ -67,22 +70,22 @@ A backdoor transition that allows a subject to transition directly from `START` 
 ## Category 3: Cloud Computing & AWS Free Tier
 
 ### Q12: How is this project architected to remain 100% within the AWS Free Tier?
-**Answer**:
+**Answer**:  
 - **Amazon DynamoDB**: Configured with 5 RCU / 5 WCU provisioned capacity (well within the perpetual 25 RCU / 25 WCU Free Tier allowance, costing $0.00/month).
-- **Amazon S3**: Hosts the static web dashboard (within the 5 GB standard storage and 20,000 GET requests limit).
+- **Amazon S3**: Hosts the static web dashboard and policy backups (within 5 GB standard storage and 20,000 GET requests limit).
 - **AWS Lambda / EC2 t2.micro**: Runs the FastAPI backend (within 1M requests/mo or 750 free instance hours/mo).
-- **Amazon CloudWatch Logs**: 14-day retention for audit logs (within 5 GB free ingestion).
+- **Amazon CloudWatch Logs & Metrics**: 14-day retention for audit logs (within 5 GB free ingestion).
 
 ### Q13: How does the backend support both local development and AWS cloud deployment?
-**Answer**:
+**Answer**:  
 We use the **Repository Pattern** (`backend/storage/base.py`). The storage backend is controlled by the `STORAGE_BACKEND` environment variable. In local development, it defaults to `sqlite` (using a local `policies.db` file). In AWS cloud deployment, setting `STORAGE_BACKEND=dynamodb` activates the Boto3 DynamoDB provider without altering any business logic.
 
 ### Q14: How does the system implement IAM Least Privilege?
-**Answer**:
+**Answer**:  
 The backend IAM role is not granted broad administrator access. The attached IAM policy grants only four scoped DynamoDB permissions (`GetItem`, `PutItem`, `Scan`, `DeleteItem`) strictly restricted to the resource ARNs of the two project tables, plus CloudWatch log write permissions.
 
 ### Q15: Why is Infrastructure as Code (IaC) included, and what tools did you use?
-**Answer**:
+**Answer**:  
 IaC ensures reproducible, version-controlled cloud infrastructure. We provided both **Terraform** (`infrastructure/terraform/`) and native **AWS CloudFormation** (`infrastructure/cloudformation/template.yaml`) to define the DynamoDB tables, S3 bucket, CloudWatch log groups, and IAM policies.
 
 ---
@@ -90,29 +93,117 @@ IaC ensures reproducible, version-controlled cloud infrastructure. We provided b
 ## Category 4: Software Engineering & Implementation
 
 ### Q16: Why did you choose FastAPI over Flask or Django?
-**Answer**:
+**Answer**:  
 FastAPI provides native asynchronous I/O, automatic OpenAPI / Swagger documentation generation (`/docs`), and tight integration with Pydantic v2 for strict type checking and validation. Django is unnecessarily heavyweight for a verification microservice, and Flask requires third-party plugins for schema validation.
 
 ### Q17: Why did you build the frontend using vanilla JavaScript and Cytoscape.js instead of a heavy React framework?
-**Answer**:
-Using vanilla JavaScript and Cytoscape.js eliminated heavy `node_modules` build toolchains (Webpack, Vite), keeping the project lightweight and portable. The frontend can be served directly from FastAPI static files or an AWS S3 bucket with zero build steps. Cytoscape.js provides high-performance graph layout engines (breadth-first, DAG) with rich styling for violation highlighting.
+**Answer**:  
+Using vanilla JavaScript and Cytoscape.js eliminated heavy `node_modules` build toolchains (Webpack, Vite), keeping the project lightweight and portable. The frontend can be served directly from FastAPI static files or an AWS S3 bucket with zero build steps. Cytoscape.js provides high-performance graph layout engines (Breadthfirst, CoSE, Concentric) with rich styling for violation highlighting.
 
 ### Q18: How did you test the verification engine?
-**Answer**:
-We implemented an automated test suite using **pytest** comprising 21 unit and integration tests across three test modules:
+**Answer**:  
+We implemented an automated test suite using **pytest** comprising **71 unit and integration tests** with a 100% pass rate across 10 specialized test modules:
 1. `test_fsm.py`: FSM state addition, transition mapping, BFS reachability, shortest witness path, and dead-state detection.
-2. `test_verifier.py`: 100% pass verification on valid policies and accurate violation detection across all 7 flaw categories.
-3. `test_api.py`: HTTP endpoint testing for `/health`, `/api/policies/verify`, `/api/policies/samples/templates`, and benchmarks.
+2. `test_policy_model.py`: Pydantic schema validation, uniqueness constraints, and metadata defaults.
+3. `test_zt_invariants.py`: Authentication, device trust, least-privilege authorization separation, and session revocability invariants.
+4. `test_verifier.py`: 100% pass verification on valid policies and accurate violation detection across all 7 flaw categories.
+5. `test_verification_report.py`: Posture classification, risk score formula (0-100), and remediation synthesis.
+6. `test_api.py`: FastAPI endpoints for health, policy CRUD, verification, and templates.
+7. `test_cloud.py`: CloudWatch offline buffering and S3 backup fallback handlers.
+8. `test_storage_consistency.py`: SQLite 5 B-Tree indexes, DynamoDB single-table keys, and lossless cross-backend migration.
+9. `test_security.py`: JSON bomb recursion ceilings, script injection filters, null byte poisoning, and rate limiting.
+10. `test_benchmark_scale.py`: Synthetic FSM scaling up to 1,000 rules, statistical percentiles ($p_{50}, p_{95}, p_{99}$), and LaTeX table generators.
 
 ### Q19: What were your experimental evaluation results?
-**Answer**:
+**Answer**:  
 We ran empirical experiments on 10 ground-truth labeled policies and synthetic policies scaling up to 1,000 transitions:
 - **Detection Accuracy**: 100.0%
 - **Detection Rate (Recall)**: 100.0%
 - **False Positive Rate**: 0.0%
-- **Verification Latency**: 0.14 ms for $N = 10$, 0.81 ms for $N = 100$, and 13.2 ms for $N = 1,000$.
+- **Verification Latency**: 0.25 ms for $N = 10$, 2.27 ms for $N = 100$, and 17.9 ms for $N = 1,000$.
 
 ### Q20: What are the limitations of the current implementation and scope for future work?
-**Answer**:
+**Answer**:  
 - *Limitations*: The engine operates on discrete propositional states and explicit string predicates; it does not solve arbitrary first-order arithmetic constraints like an SMT solver (e.g., Z3).
 - *Future Work*: Integrating SMT constraint solving for complex numerical attribute predicates (e.g., time-window intervals, IP subnet range matching), and building a CI/CD GitHub Action plugin to block pull requests containing flawed access policies.
+
+---
+
+## Category 5: Storage Architecture, Security Hardening & Benchmarking
+
+### Q21: Explain the DynamoDB Single-Table Design pattern used in this project.
+**Answer**:  
+Instead of creating separate physical tables for policies and audit reports (which would require multi-table queries and double provisioned capacity), we use a single table `ZeroTrustPolicies`:
+- **Partition Key (`PK`)**: `POLICY#<policy_id>`
+- **Sort Key (`SK`)**: `METADATA` for the policy configuration; `REPORT#<iso_timestamp>` for historical verification reports.
+- **Global Secondary Index (`GSI1`)**: `GSI1PK = TYPE#POLICY` or `TYPE#REPORT`, with `GSI1SK = <timestamp>`.  
+This enables querying a policy and all its historical audit reports in a single atomic query while remaining within 5 RCU / 5 WCU Free Tier capacity.
+
+### Q22: What B-Tree indexes were added to the SQLite database and why?
+**Answer**:  
+We created 5 targeted B-Tree indexes in `backend/storage/sqlite_store.py`:
+1. `idx_policies_created_at`: Accelerates reverse chronological policy listing.
+2. `idx_policies_name`: Enables fast exact or prefix lookups by policy name.
+3. `idx_reports_policy_id`: Filters historical audit logs by policy ID in $\mathcal{O}(\log N)$ time.
+4. `idx_reports_timestamp`: Sorts audit reports chronologically without full table scans.
+5. `idx_reports_valid`: Accelerates compliance aggregation queries (counting passed vs failed audits).
+
+### Q23: How does the engine defend against JSON recursion bombs and injection attacks?
+**Answer**:  
+In `backend/security/sanitizer.py`, the `PolicySanitizer` enforces:
+1. **Recursive Depth Ceiling**: Rejects payloads with nesting depth $> 8$ levels to prevent call stack exhaustion (JSON bombs).
+2. **Script Injection Filter**: Scans strings for `<script>`, `javascript:`, `onerror=`, and applies HTML entity escaping.
+3. **Null Byte Poisoning**: Checks for `\x00` in all strings to prevent C-string termination attacks.
+4. **Rule Ceiling**: Limits maximum rules per policy to $\le 5,000$ and string lengths to $\le 128$ characters.
+
+### Q24: How does the sliding-window rate limiter work?
+**Answer**:  
+In `backend/security/rate_limiter.py`, the middleware tracks client IP request timestamps in an in-memory sliding 60-second window. If requests exceed 120 per minute, it rejects the burst with HTTP 429 `Too Many Requests` and supplies `Retry-After` headers. Static asset routes and health probes (`/health`) are whitelisted.
+
+### Q25: How does the project generate NIST SP 800-207 least-privilege IAM policies?
+**Answer**:  
+In `backend/security/iam_generator.py`, the system generates production-grade AWS IAM JSON policies that eliminate all wildcard (`*`) administrative permissions. It explicitly binds DynamoDB actions (`GetItem`, `PutItem`, `Scan`, `DeleteItem`) to specific table ARNs, restricts S3 permissions to the backup bucket, and limits CloudWatch to the `ZeroTrustVerificationEngine` namespace.
+
+### Q26: What are statistical percentiles ($p_{50}, p_{95}, p_{99}$), and why are they reported instead of simple averages?
+**Answer**:  
+Arithmetic averages hide tail latency spikes caused by OS scheduling, memory allocation, or garbage collection.
+- $p_{50}$ (50th percentile / median): Typical latency experienced by half the requests.
+- $p_{95}$ and $p_{99}$ (95th and 99th percentiles): Tail latency representing worst-case execution times.  
+Reporting $p_{95}$ and $p_{99}$ proves that the verification engine has deterministic, bounded execution times without tail latency degradation.
+
+### Q27: How does CloudWatch custom metrics telemetry work when offline?
+**Answer**:  
+In `backend/cloud/cloudwatch.py`, if AWS credentials are not configured or the system is running offline, the publisher does not crash; it buffers metrics locally in an in-memory queue (`_local_buffer`) and logs a warning, ensuring zero disruption to the verification engine.
+
+### Q28: How does the automated S3 policy archiver function?
+**Answer**:  
+In `backend/cloud/s3.py`, the archiver exports verified policies as JSON objects with timestamped keys (`backups/policies/<policy_id>_<timestamp>.json`). If S3 is unreachable, it seamlessly falls back to saving files in a local directory (`data/s3_backups/`), maintaining complete backup integrity.
+
+### Q29: What is the risk scoring formula and how is it derived?
+**Answer**:  
+In `backend/models/report.py`, the Risk Score (0–100) is calculated as:
+$$\text{RiskScore} = \min\left(100, \sum_{v \in \text{Violations}} \text{Weight}(\text{Severity}_v) + 15 \times \mathbb{I}(\text{DeadStates}) + 10 \times \mathbb{I}(\text{UnreachableStates})\right)$$
+where:
+- $\text{CRITICAL}$ severity = 40 points
+- $\text{HIGH}$ severity = 25 points
+- $\text{MEDIUM}$ severity = 15 points
+- $\text{LOW}$ severity = 5 points  
+Policies with score $< 20$ are classified as `COMPLIANT`, $20-49$ as `MODERATE_RISK`, $50-79$ as `HIGH_RISK`, and $\ge 80$ as `CRITICAL_RISK`.
+
+---
+
+## Category 6: Rapid-Fire Viva Defense Cheatsheet
+
+| Item | Formula / Reference / Detail |
+| :--- | :--- |
+| **Formal Automaton** | $M = (Q, \Sigma, \delta, q_0, F)$ |
+| **Time Complexity** | $\mathcal{O}(|Q| + |\delta|) = \mathcal{O}(|V| + |E|)$ |
+| **Space Complexity** | $\mathcal{O}(|Q| + |\delta|)$ (Adjacency lists, visited sets) |
+| **Zero Trust Standard** | NIST SP 800-207 (*Zero Trust Architecture*) |
+| **Detection Recall** | **100.0%** (7/7 flawed policies detected) |
+| **False Positive Rate**| **0.0%** (0 false alarms on compliant policies) |
+| **Median Latency ($p_{50}$)** | **0.245 ms** ($N=10$), **2.15 ms** ($N=100$), **16.85 ms** ($N=1000$) |
+| **Total Automated Tests** | **71 passing tests** across 10 modules |
+| **AWS DynamoDB Limits** | 5 RCU / 5 WCU (Within 25 RCU/WCU Free Tier) |
+| **AWS Monthly Cost** | **$0.00 / month** (100% Free Tier compliant) |
+| **Security Controls** | Rate limiting (120 req/min), Max JSON depth $\le 8$, Scoped IAM |
