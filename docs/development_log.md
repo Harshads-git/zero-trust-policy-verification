@@ -540,9 +540,47 @@
 - *Reflection*: Proving sub-millisecond median latencies for policies up to 100 rules and under 25ms for 1000 rules provides empirical validation that formal FSM verification is practical for real-world CI/CD pipelines.
 - *Tomorrow's Goal (Day 14)*: Academic documentation & viva defense preparation: Comprehensive final project report (`docs/capstone_project_report.md`), viva question-and-answer defense cheatsheet (`docs/viva_defense_guide.md`), and system architecture diagrams.
 
+### DAY 14: Academic Documentation, Viva Defense Preparation & Architecture Diagrams
+**Date**: September 22, 2026  
+**Objective**: Author publication-grade final capstone documentation, formalize theoretical proofs, provide comprehensive architecture diagrams, and prepare student defense materials for the external B.Tech viva voce examination.
+
+#### 1. Tasks Executed
+- [x] Authored Comprehensive Final Capstone Project Report (`docs/capstone_project_report.md`):
+  - Formulated academic abstract, problem statement, and NIST SP 800-207 compliance framework.
+  - Comprehensive literature review comparing DAC/MAC/RBAC/ABAC, SMT solvers (Z3), LTL model checkers (NuSMV), and FSA graph model checking.
+  - Mathematical formulation of augmented Deterministic Finite Automaton $M = (Q, \Sigma, \delta, q_0, F)$.
+  - Rigorous proofs of linear computational time and space complexity $\mathcal{O}(|Q| + |\delta|)$.
+  - Empirical evaluation chapter detailing 100% detection recall, confusion matrix metrics, and statistical latency distributions up to $N = 1000$.
+  - Threat modeling defense matrix against JSON recursion bombs, XSS, null byte poisoning, and verification DoS.
+- [x] Created Architectural Blueprint Specifications (`docs/architecture_diagrams.md`):
+  - End-to-End System Topography diagram in Mermaid visualizing client, edge sanitizer, verification engine, dual storage, and AWS cloud telemetry.
+  - FSM State-Transition Lifecycle state diagram contrasting legitimate paths against flaw trajectories.
+  - Dual-Backend Persistence Flowchart detailing SQLite 5 B-Tree indexes versus Amazon DynamoDB Single-Table partitioning (PK/SK, GSI1).
+  - End-to-End Verification Sequence Diagram capturing request arrival, sanitization, model checking, cloud telemetry, and report persistence.
+- [x] Expanded Viva Voce Defense Guide (`docs/viva_defense_guide.md`):
+  - Expanded technical Q&A from 20 to 30 comprehensive questions spanning 6 technical categories.
+  - Updated automated test suite metrics to reflect all 71 passing tests across 10 specialized modules.
+  - Added in-depth answers on DynamoDB single-table design, SQLite B-Tree indexing, sliding-window rate limiting, recursive depth limits, offline CloudWatch metric buffering, and statistical percentiles ($p_{50}, p_{95}, p_{99}$).
+  - Synthesized a Rapid-Fire Viva Defense Cheatsheet for quick student recall during oral examination.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Modular Multi-Diagram Presentation**  
+  *Rationale*: In undergraduate defense panels, examiners from different specialties focus on different domains: Theory of Computation faculty inspect automata state transitions, software engineering faculty inspect sequence diagrams, and cloud/database faculty inspect single-table NoSQL schemas. Providing tailored Mermaid diagrams for each perspective ensures clarity during cross-examination.
+- **Decision 2: Comprehensive Viva Q&A Cheatsheet**  
+  *Rationale*: External examiners frequently ask challenging cross-disciplinary questions (e.g., "Why not use NuSMV or Z3?", "How does single-table DynamoDB maintain query performance without table scans?"). Having structured, mathematically sound model answers provides confidence and academic rigor.
+
+#### 3. Git Commits for Day 14
+- `1fbf5fa` - `docs(academic): add comprehensive B.Tech capstone project report with formal proofs and empirical analysis`
+- `ea0bb60` - `docs(viva): expand viva voce defense guide to 30 comprehensive questions and add architecture diagrams`
+- `docs: add Day 14 academic documentation, viva defense cheatsheet, and architecture diagrams engineering log`
+
+#### 4. Reflections & Next Steps for Day 15
+- *Reflection*: The project now possesses institutional-grade academic documentation matching the highest B.Tech capstone standards, fully supported by empirical data and mathematical proofs.
+- *Tomorrow's Goal (Day 15)*: Final project wrap-up & live demonstration checklist: deployment automation scripts (`run_demo.py` / `deploy.sh`), production-ready `README.md` with architecture badges, and video/presentation walkthrough guide.
+
 ---
 
-*(Days 14 through 15 are documented in subsequent log entries.)*
+*(Day 15 is documented in subsequent log entries.)*
 
 
 
