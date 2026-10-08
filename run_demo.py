@@ -1,9 +1,9 @@
 """
 Zero Trust Policy Verification Engine (ZTPVE)
-Capstone 80% Milestone Demonstration & Viva Defense Walkthrough Script
+Capstone Final Project Defense Demonstration & Verification Showcase (100% Complete)
 
 Demonstrates:
-1. Theory of Computation FSM Core & Graph Algorithms
+1. Theory of Computation FSM Core & Graph Algorithms (M = (Q, Sigma, delta, q0, F))
 2. Zero Trust Safety Invariant Verification (NIST SP 800-207)
 3. Formal Counterexample Trajectory & Remediation Generation
 4. Real-time Scalability & Tail-Latency Percentiles (p50/p95/p99)
@@ -180,8 +180,8 @@ def main():
     print(f"""{BOLD}{CYAN}
 ===========================================================================
   ZERO TRUST POLICY VERIFICATION ENGINE (ZTPVE)
-  B.Tech Capstone Project -- 80% Milestone Demonstration
-  Theory of Computation | Cybersecurity (NIST SP 800-207) | Cloud
+  B.Tech Capstone Project -- Final Defense Demonstration (100% Complete)
+  Theory of Computation | Cybersecurity (NIST SP 800-207) | Cloud Computing
 ===========================================================================
 {RESET}""")
     
@@ -216,7 +216,7 @@ def main():
         print(f"  or:")
         print(f"    {BOLD}uvicorn backend.main:app --reload --port 8000{RESET}\n")
     
-    print(f"{BOLD}{GREEN}>>> 80% Milestone Demonstration Run Completed Successfully! <<<{RESET}\n")
+    print(f"{BOLD}{GREEN}>>> Final Capstone Demonstration Run Completed Successfully! <<<{RESET}\n")
 
 
 if __name__ == "__main__":
