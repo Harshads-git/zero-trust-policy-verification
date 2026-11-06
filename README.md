@@ -1,5 +1,6 @@
-# Zero Trust Policy Verification Engine (ZTPVE)
+# AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)
 
+[![Project: AxiomTrust](https://img.shields.io/badge/Project-AxiomTrust-blueviolet.svg?style=for-the-badge)](#)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Theory of Computation](https://img.shields.io/badge/Theory%20of%20Computation-FSM%20Formal%20Verification-6366f1.svg)](docs/formal_model.md)
@@ -8,7 +9,7 @@
 [![Tests](https://img.shields.io/badge/pytest-71%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
+**AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
 
 The engine formalizes declarative enterprise access policies as Deterministic Finite Automata (DFAs) augmented with transition guard predicates. It formally proves safety invariants in linear time $\mathcal{O}(|Q| + |\delta|)$, exposes unreachable/dead-end trap states, pinpoints authentication bypasses, and synthesizes minimal counterexample witness execution trajectories for human-explainable remediation.
 
@@ -45,7 +46,7 @@ As cloud microservices and IAM policies scale to hundreds of interdependent rule
 - **Perpetual Zombie Sessions**: Access grants lacking termination or timeout paths.
 - **Rule Conflicts & Non-Determinism**: Ambiguous rules creating conflicting access decisions.
 
-ZTPVE eliminates these flaws **prior to deployment** through graph reachability model checking running with linear time complexity $\mathcal{O}(|Q| + |\delta|)$.
+**AxiomTrust** eliminates these flaws **prior to deployment** through graph reachability model checking running with linear time complexity $\mathcal{O}(|Q| + |\delta|)$.
 
 ---
 

@@ -1,4 +1,4 @@
-# Zero Trust Policy Verification Engine (ZTPVE)
+# AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)
 ## Final Capstone Project Report & Formal Verification Specification
 
 **Academic Degree**: Bachelor of Technology (B.Tech) in Information Technology  

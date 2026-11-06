@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Zero Trust Policy Verification Engine (ZTPVE)
+AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)
 Automated Production & Demonstration Deployment Orchestrator
 
 Performs end-to-end setup:
@@ -82,7 +82,7 @@ def run_tests():
 def start_server(host: str = "127.0.0.1", port: int = 8000):
     log_step(f"Launching FastAPI Server on http://{host}:{port} ...")
     print(f"\n{BOLD}{GREEN}==============================================================={RESET}")
-    print(f"{BOLD}{GREEN}  Zero Trust Policy Verification Engine is LIVE!{RESET}")
+    print(f"{BOLD}{GREEN}  AxiomTrust: Zero Trust Policy Verification Engine is LIVE!{RESET}")
     print(f"  - Web Interface:        http://{host}:{port}")
     print(f"  - Swagger API Docs:     http://{host}:{port}/docs")
     print(f"  - Redoc API Docs:       http://{host}:{port}/redoc")
@@ -99,7 +99,7 @@ def start_server(host: str = "127.0.0.1", port: int = 8000):
 def main():
     print(f"""{BOLD}{CYAN}
 ===========================================================================
-  ZTPVE AUTOMATED DEPLOYMENT & VERIFICATION ORCHESTRATOR
+  AXIOMTRUST AUTOMATED DEPLOYMENT & VERIFICATION ORCHESTRATOR
   NIST SP 800-207 Zero Trust Policy Verification Engine (Capstone Final)
 ===========================================================================
 {RESET}""")

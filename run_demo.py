@@ -1,5 +1,5 @@
 """
-Zero Trust Policy Verification Engine (ZTPVE)
+AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)
 Capstone Final Project Defense Demonstration & Verification Showcase (100% Complete)
 
 Demonstrates:
@@ -179,7 +179,7 @@ def run_stage_5_iam_policy():
 def main():
     print(f"""{BOLD}{CYAN}
 ===========================================================================
-  ZERO TRUST POLICY VERIFICATION ENGINE (ZTPVE)
+  AXIOMTRUST: ZERO TRUST POLICY VERIFICATION ENGINE (ZTPVE)
   B.Tech Capstone Project -- Final Defense Demonstration (100% Complete)
   Theory of Computation | Cybersecurity (NIST SP 800-207) | Cloud Computing
 ===========================================================================

@@ -1,5 +1,5 @@
 # B.Tech IT Final Viva Defense & Technical Q&A Guide
-## Zero Trust Policy Verification Engine (ZTPVE)
+## AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)
 
 This comprehensive guide prepares the student for questions commonly asked by external examiners, faculty reviewers, and technical panelists during the final B.Tech capstone viva voce examination.
 

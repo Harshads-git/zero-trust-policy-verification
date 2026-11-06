@@ -24,9 +24,9 @@ logging.basicConfig(
 logger = logging.getLogger("ztpve.server")
 
 app = FastAPI(
-    title="Zero Trust Policy Verification Engine (ZTPVE)",
+    title="AxiomTrust: Zero Trust Policy Verification Engine (ZTPVE)",
     description=(
-        "Formal verification system for Zero Trust access control workflows using "
+        "AxiomTrust - Formal verification system for Zero Trust access control workflows using "
         "Finite State Machines (FSMs) and Theory of Computation invariants."
     ),
     version="1.0.0",
