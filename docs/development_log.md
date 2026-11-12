@@ -613,13 +613,46 @@
 
 ---
 
-## Final Project Summary
-- **Total Development Days**: 15 Days
-- **Total Git Commits**: 45 commits (3 commits / day)
-- **Automated Test Suite**: 71 passing tests (100% pass rate)
-- **Standard Compliance**: NIST SP 800-207 Zero Trust Architecture
-- **Repository**: [https://github.com/Harshads-git/zero-trust-policy-verification](https://github.com/Harshads-git/zero-trust-policy-verification)
-- **Status**: 100% Complete & Ready for Academic Viva Voce Defense.
+## Part II: Advanced Extensions (Days 16 – 30)
+### Sprint 4: Z3 SMT Constraint Solving & Contextual Guards (Days 16 – 19)
+
+### DAY 16: First-Order Guard Predicate Algebra & Context Attributes
+**Date**: September 24, 2026  
+**Objective**: Elevate the automaton model from propositional conditions to First-Order Guard Predicate Algebra supporting IP CIDR subnets, continuous risk metrics, temporal windows, and recursive boolean compositions (AND, OR, NOT).
+
+#### 1. Tasks Executed
+- [x] Engineered `backend/models/predicate.py` implementing First-Order Predicate Algebra:
+  - **Relational & Set Operators (`ComparisonOp`)**: `EQ (==)`, `NEQ (!=)`, `LT (<)`, `LTE (<=)`, `GT (>)`, `GTE (>=)`, `IN`, `NOT_IN`, `CIDR_MATCH`, and `BETWEEN`.
+  - **Dynamic Access Context (`AccessContext`)**: Captures environmental, subject, and device claims (`client_ip`, `risk_score` $\in [0.0, 1.0]$, `time_of_day`, `device_health`, `device_verified`, `mfa_verified`, `user_roles`, `clearance_level`, `custom_attributes`).
+  - **Atomic Predicates (`AtomicPredicate`)**: Evaluates attribute constraints with native support for `ipaddress.ip_network` subnet containment, numeric thresholds, and time-of-day interval evaluations (including overnight maintenance windows).
+  - **Compound Boolean Formulas (`CompoundPredicate`)**: Supports recursive arbitrary tree nesting of `AND`, `OR`, and `NOT` clauses with clean mathematical string representations ($\neg, \land, \lor, \in$).
+  - **Fail-Closed Evaluation**: Adheres to NIST SP 800-207 Zero Trust fail-closed semantics—if context lacks a required attribute, evaluation returns `False`.
+  - **Robust Predicate Parser (`parse_predicate`)**: Automatically parses string representations (e.g., `"risk_score <= 0.35"`), serialized JSON dictionaries, and maintains backward compatibility with legacy boolean flag strings.
+- [x] Integrated Predicate Algebra into Policy Rule Model (`backend/models/policy.py`):
+  - Added `predicate: Optional[Union[CompoundPredicate, AtomicPredicate]]` to `PolicyRule`.
+  - Added helper method `rule.get_guard_predicate()` preserving complete backward compatibility with existing policies.
+- [x] Created Comprehensive Predicate Test Suite (`backend/tests/test_predicates.py`):
+  - 8 new unit tests validating numeric comparisons, IPv4/IPv6 CIDR matching, temporal intervals, role set containment, compound boolean formulas, fail-closed missing context, and parser utility.
+  - Automated test suite expanded to **79 passing tests** with 100% pass rate.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: First-Order Predicates vs. Propositional Strings**  
+  *Rationale*: In pure propositional logic, conditions like "MFA verified" and "device compliant" are static binary atoms. In modern Zero Trust environments, access decisions depend on continuous dynamic metrics (e.g., $\text{risk} \le 0.35$) and environmental attributes (corporate subnet CIDRs). Adding first-order predicate algebra provides the necessary mathematical foundation for SMT theorem proving without modifying graph reachability complexity.
+- **Decision 2: Strict Fail-Closed Missing Context Semantics**  
+  *Rationale*: In Zero Trust architecture (NIST SP 800-207 Tenet 1 & 6), absence of evidence is not evidence of absence. If an incoming access context fails to supply a client IP or device health report required by a transition guard, the transition must immediately evaluate to `False` rather than throwing an exception or defaulting to open access.
+
+#### 3. Git Commits for Day 16
+- `b721a96` - `feat(predicate): implement first-order predicate algebra, contextual attributes, and evaluation engine`
+- `feac4e8` - `test(predicate): add comprehensive unit test suite for predicate algebra and context matching`
+- `docs: add Day 16 first-order predicate algebra and contextual attributes engineering log`
+
+#### 4. Reflections & Next Steps for Day 17
+- *Reflection*: Adding first-order predicate algebra bridges the gap between discrete state machine graphs and real-world multi-attribute access control engines.
+- *Tomorrow's Goal (Day 17)*: Integrate Microsoft's **Z3 Theorem Prover** (`backend/core/smt_solver.py`) to convert transition guard chains into SMT-LIB2 assertions, proving path satisfiability and detecting mathematically impossible/dead transitions.
+
+---
+
+*(Days 17 through 30 are documented in subsequent log entries.)*
 
 
 

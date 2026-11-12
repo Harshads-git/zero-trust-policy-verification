@@ -6,7 +6,7 @@
 [![Theory of Computation](https://img.shields.io/badge/Theory%20of%20Computation-FSM%20Formal%20Verification-6366f1.svg)](docs/formal_model.md)
 [![Zero Trust Standard](https://img.shields.io/badge/NIST%20SP%20800--207-Zero%20Trust%20Compliant-red.svg)](docs/capstone_project_report.md)
 [![AWS Free Tier](https://img.shields.io/badge/AWS-100%25%20Free%20Tier%20Compliant-FF9900.svg?logo=amazon-aws&logoColor=white)](infrastructure/)
-[![Tests](https://img.shields.io/badge/pytest-71%20passed%20(100%25)-success.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/pytest-79%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
@@ -268,7 +268,7 @@ python run_demo.py --serve
 
 ---
 
-## 8. Automated Test Suite (71 Tests)
+## 8. Automated Test Suite (79 Tests)
 
 Execute the full automated test suite using `pytest`:
 
@@ -289,7 +289,8 @@ python -m pytest backend/tests -v
 | `test_storage_consistency.py` | SQLite 5 B-Tree indexes, DynamoDB single-table keys, migration parity | 5 |
 | `test_security.py` | JSON bomb depth ceiling, XSS sanitization, null bytes, rate limiter | 8 |
 | `test_benchmark_scale.py` | Synthetic FSM scaling up to $N=1000$, statistical percentiles, LaTeX tables | 6 |
-| **Total** | **Comprehensive Full-Stack Test Coverage** | **71 (100% Pass)** |
+| `test_predicates.py` | First-order predicate algebra, CIDR subnet matching, temporal windows, boolean logic | 8 |
+| **Total** | **Comprehensive Full-Stack Test Coverage** | **79 (100% Pass)** |
 
 ---
 
