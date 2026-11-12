@@ -3,9 +3,10 @@ Zero Trust Policy Data Models
 Defines Pydantic models for Policies, Rules, Transitions, and Contexts.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 import uuid
+from backend.models.predicate import AtomicPredicate, CompoundPredicate, parse_predicate
 
 
 class PolicyRule(BaseModel):
@@ -14,7 +15,18 @@ class PolicyRule(BaseModel):
     target: str = Field(..., description="Target state name, e.g. IDENTITY_VERIFIED")
     action: str = Field(default="transition", description="Action or event triggering transition")
     condition: Optional[str] = Field(default=None, description="Guard predicate or required claim")
+    predicate: Optional[Union[CompoundPredicate, AtomicPredicate]] = Field(
+        default=None, description="Structured first-order guard predicate"
+    )
     description: Optional[str] = Field(default=None, description="Human explanation of rule intent")
+
+    def get_guard_predicate(self) -> Optional[Union[CompoundPredicate, AtomicPredicate]]:
+        """Returns structured predicate, falling back to parsed condition string if needed."""
+        if self.predicate is not None:
+            return self.predicate
+        if self.condition:
+            return parse_predicate(self.condition)
+        return None
 
 
 class PolicyMetadata(BaseModel):
