@@ -650,9 +650,44 @@
 - *Reflection*: Adding first-order predicate algebra bridges the gap between discrete state machine graphs and real-world multi-attribute access control engines.
 - *Tomorrow's Goal (Day 17)*: Integrate Microsoft's **Z3 Theorem Prover** (`backend/core/smt_solver.py`) to convert transition guard chains into SMT-LIB2 assertions, proving path satisfiability and detecting mathematically impossible/dead transitions.
 
+### DAY 17: Microsoft Z3 SMT Theorem Prover Integration & Guard Satisfiability
+**Date**: September 25, 2026  
+**Objective**: Bridge automata reachability with First-Order Formal Methods by integrating Microsoft's Z3 Theorem Prover to evaluate path-condition satisfiability, extract concrete witness models, and eliminate mathematically dead transitions.
+
+#### 1. Tasks Executed
+- [x] Engineered `backend/core/smt_solver.py` featuring `Z3ConstraintSolver`:
+  - **First-Order SMT Translation**: Maps `AtomicPredicate` and `CompoundPredicate` trees into SMT-LIB2 assertions using Z3 typed sorts (`z3.Real`, `z3.Int`, `z3.String`, `z3.Bool`).
+  - **IPv4 CIDR Integer Boundary Modeling**: Converts CIDR network masks into exact 32-bit integer interval constraints $[net\_start, net\_end]$, allowing Z3 to prove subnet containment and disjointness.
+  - **Temporal Interval Solving**: Encodes `HH:MM` intervals as minutes from midnight $[0..1439]$, enabling satisfiability proofs across complex shift windows and overnight maintenance ranges.
+  - **Path Condition Conjunction ($\Phi(\pi)$)**: Conjoins guard predicates along multi-hop state trajectories ($\Phi(\pi) = \bigwedge_{i=1}^k \text{guard}(e_i)$) to mathematically prove whether a path to `ACCESS_GRANTED` is traversable.
+  - **Dead Transition Detection**: Automatically scans policy rules to pinpoint transitions whose guard predicates are self-contradictory ($P \equiv \text{false}$) or mutually disjoint.
+  - **Witness Model Extraction**: When SAT, extracts concrete input valuations (e.g. `risk_score = 0.25`, `client_ip = 10.50.0.1`, `clearance_level = 3`) proving exact runtime states that satisfy the policy.
+- [x] Exposed REST Endpoint `POST /api/policies/verify-smt` in `backend/api/routes_policy.py`:
+  - Returns combined output containing formal FSM verification report alongside Z3 SMT analysis, dead transition flags, and guard satisfiability proofs.
+- [x] Updated Dependencies in `requirements.txt`:
+  - Added `z3-solver>=4.12.0`.
+- [x] Created Comprehensive SMT Test Suite (`backend/tests/test_smt_solver.py`):
+  - 8 new unit and integration tests verifying numeric SAT models, numeric UNSAT contradictions, CIDR subnet models, disjoint CIDR contradictions, temporal window intervals, multi-hop path condition chains, dead transition detection, and REST endpoint behavior.
+  - Automated test suite expanded to **87 passing tests** with 100% pass rate.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: SMT Constraint Solving Complementing FSM Reachability**  
+  *Rationale*: Classical automata reachability (BFS/DFS) only verifies structural topology (i.e. "does a directed edge exist from $A$ to $B$?"). However, if edge $(A, B)$ requires $\text{risk} < 0.2$ and subsequent edge $(B, C)$ requires $\text{risk} > 0.5$, graph search falsely reports that state $C$ is reachable. Integrating Z3 solves the path condition $\Phi(A \to B \to C)$ as `UNSAT`, proving to security auditors that this path can never execute in production.
+- **Decision 2: Exact 32-bit Integer Interval Formulation for CIDRs**  
+  *Rationale*: Rather than treating IP subnets as opaque string tokens, converting IPv4 CIDRs into mathematical integers allows Z3 to reason about overlapping subnets, subset inclusions ($/24 \subset /16$), and disjoint subnets natively in integer arithmetic.
+
+#### 3. Git Commits for Day 17
+- `2bef5e9` - `feat(smt): integrate Microsoft Z3 theorem prover for first-order guard satisfiability and path condition verification`
+- `450ec6e` - `test(smt): add test suite for Z3 guard satisfiability, path condition consistency, and model extraction`
+- `docs: add Day 17 Z3 theorem prover integration and SMT guard satisfiability engineering log`
+
+#### 4. Reflections & Next Steps for Day 18
+- *Reflection*: Pairing graph reachability with Microsoft Z3 provides formal guarantees that match commercial verification engines at major cloud providers.
+- *Tomorrow's Goal (Day 18)*: Implement Continuous Risk-Adaptive Guard Verifier (`backend/core/risk_engine.py`): monotonic risk accumulation along trajectories, dynamic thresholds, and step-up authentication invariant $\mathcal{I}_{\text{risk}}$.
+
 ---
 
-*(Days 17 through 30 are documented in subsequent log entries.)*
+*(Days 18 through 30 are documented in subsequent log entries.)*
 
 
 
