@@ -12,6 +12,7 @@ from pathlib import Path
 from backend.models.policy import ZeroTrustPolicy
 from backend.models.report import VerificationReport
 from backend.core.verifier import ZeroTrustVerificationEngine
+from backend.core.smt_solver import Z3ConstraintSolver
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
 from backend.security import PolicySanitizer
@@ -42,6 +43,49 @@ def verify_policy(
     except Exception:
         pass  # Non-blocking telemetry
     return report
+
+
+@router.post("/verify-smt", summary="Verify policy with FSM invariants and Z3 SMT solver")
+def verify_policy_with_smt(
+    policy: ZeroTrustPolicy,
+    repo: PolicyRepository = Depends(get_repository)
+) -> Dict[str, Any]:
+    """
+    Combines formal FSM graph reachability verification with First-Order Logic
+    SMT theorem proving using Microsoft Z3. Proves guard satisfiability,
+    detects contradictory dead transitions, and extracts concrete witness models.
+    """
+    policy = PolicySanitizer.sanitize_policy(policy)
+    fsm_report = verifier.verify(policy)
+
+    smt_solver = Z3ConstraintSolver()
+    dead_transitions = smt_solver.detect_dead_transitions(policy)
+
+    grant_rules = [r for r in policy.rules if r.target in ("ACCESS_GRANTED",)]
+    grant_evaluations = []
+    for gr in grant_rules:
+        guard = gr.get_guard_predicate()
+        if guard:
+            res = smt_solver.check_satisfiability([guard])
+            grant_evaluations.append({
+                "rule_id": gr.rule_id,
+                "source": gr.source,
+                "target": gr.target,
+                "guard": guard.to_expression(),
+                "smt_status": res.status,
+                "is_satisfiable": res.is_satisfiable,
+                "witness_model": res.model
+            })
+
+    return {
+        "fsm_report": fsm_report,
+        "smt_analysis": {
+            "solver_engine": "Microsoft Z3 Theorem Prover",
+            "dead_transitions_detected": dead_transitions,
+            "has_dead_transitions": len(dead_transitions) > 0,
+            "guard_satisfiability_checks": grant_evaluations
+        }
+    }
 
 
 @router.post("", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED, summary="Create and store policy")
