@@ -685,9 +685,45 @@
 - *Reflection*: Pairing graph reachability with Microsoft Z3 provides formal guarantees that match commercial verification engines at major cloud providers.
 - *Tomorrow's Goal (Day 18)*: Implement Continuous Risk-Adaptive Guard Verifier (`backend/core/risk_engine.py`): monotonic risk accumulation along trajectories, dynamic thresholds, and step-up authentication invariant $\mathcal{I}_{\text{risk}}$.
 
+### DAY 18: Continuous Risk-Adaptive Verification Engine & Dynamic Step-Up Invariant
+**Date**: September 26, 2026  
+**Objective**: Implement NIST SP 800-207 Tenet 6 Continuous Dynamic Risk Assessment: monotonic trajectory risk accumulation, dynamic step-up challenge invariant ($\mathcal{I}_{\text{risk}}$), and Z3 SMT continuous risk bound proofs.
+
+#### 1. Tasks Executed
+- [x] Engineered `backend/core/risk_engine.py` featuring `ContinuousRiskEngine`:
+  - **Dynamic Transition Risk Accounting**: Evaluates transition risk delta $\Delta r(e)$ from explicit `rule.risk_weight` or keyword-based Zero Trust action heuristics (privilege escalation keywords $\implies +0.40$, step-up authentication challenge $\implies -0.50$, baseline transition $\implies +0.10$).
+  - **Monotonic Trajectory Risk Accumulation**: Models dynamic session risk $R(\pi) = \min(1.0, \max(0.0, \sum \Delta r_i))$ across multi-hop access paths, computing peak session risk against threshold $\tau_{\text{stepup}}$ (default $0.50$).
+  - **Continuous Risk-Adaptive Invariant ($\mathcal{I}_{\text{risk}}$)**:
+    $$\forall \pi \in \mathcal{P}(q_0, \text{ACCESS\_GRANTED}), \quad R(\pi) \ge \tau_{\text{stepup}} \implies \exists q \in \pi, q \in Q_{\text{stepup}}$$
+    where $Q_{\text{stepup}} = \{\text{MFA\_CHALLENGE}, \text{STEP\_UP\_AUTH}, \text{IDENTITY\_REVERIFIED}, \text{BIOMETRIC\_CONFIRMATION}\}$.
+  - **Explainable Counterexample Extraction**: If a high-risk trajectory lacks a step-up state, extracts the minimal state path $\pi$, calculates peak risk score, and flags `ViolationType.UNMITIGATED_HIGH_RISK_PATH` with targeted remediation steps.
+  - **Z3 SMT Continuous Risk Bounds**: Uses Microsoft Z3 Real arithmetic to mathematically verify path risk bounds and prove whether unmitigated trajectories to `ACCESS_GRANTED` are realizable.
+- [x] Implemented `RiskAdaptiveInvariantRule(BaseVerificationRule)` in `backend/core/rules/` for pluggable pipeline execution.
+- [x] Extended API Endpoints in `backend/api/routes_policy.py`:
+  - Added dedicated endpoint `POST /api/policies/verify-risk` providing trajectory risk profiles, step-up status, and SMT risk bounds.
+  - Integrated continuous risk bounds directly into the `POST /api/policies/verify-smt` audit report.
+- [x] Created Comprehensive Risk Engine Test Suite (`backend/tests/test_risk_engine.py`):
+  - 7 new unit and integration tests verifying transition risk weights, trajectory accumulation without step-up, risk mitigation with step-up challenge, invariant violation discovery, SMT bounds verification, and REST API behavior.
+  - Automated test suite expanded to **94 passing tests** with 100% pass rate.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Continuous Dynamic Threat Assessment vs. Static Perimeter Gates**  
+  *Rationale*: Traditional perimeter security verifies credentials once at login. NIST SP 800-207 Tenet 6 mandates continuous dynamic re-assessment: when an authenticated user attempts sensitive administrative operations or lateral cross-zone actions, session risk escalates dynamically, necessitating real-time step-up authentication.
+- **Decision 2: Step-Up Challenge as a Formally Mitigating Automaton State**  
+  *Rationale*: By modeling step-up verification (`MFA_CHALLENGE`, `BIOMETRIC_CONFIRMATION`) as an explicit state that decreases session risk, the verification engine can formally prove whether a security policy achieves defense-in-depth without imposing unnecessary friction on low-risk paths.
+
+#### 3. Git Commits for Day 18
+- `938d5ad` - `feat(risk-adaptive): implement continuous risk-adaptive verification engine and dynamic step-up invariant`
+- `e96f53a` - `test(risk-adaptive): add test suite for continuous risk accumulation, step-up invariant, and SMT bounds`
+- `docs: add Day 18 continuous risk-adaptive verification and dynamic step-up authentication engineering log`
+
+#### 4. Reflections & Next Steps for Day 19
+- *Reflection*: Dynamic continuous risk evaluation transforms the verification engine into an adaptive, context-aware policy checker directly addressing modern zero-trust enterprise requirements.
+- *Tomorrow's Goal (Day 19)*: UI Integration for SMT Guard Constraints & Satisfiability: Visual Cytoscape edge annotations with SAT/UNSAT badges, SMT solver inspector drawer in web dashboard, and Sprint 4 wrap-up.
+
 ---
 
-*(Days 18 through 30 are documented in subsequent log entries.)*
+*(Days 19 through 30 are documented in subsequent log entries.)*
 
 
 
