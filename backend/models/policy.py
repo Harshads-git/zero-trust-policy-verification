@@ -18,6 +18,9 @@ class PolicyRule(BaseModel):
     predicate: Optional[Union[CompoundPredicate, AtomicPredicate]] = Field(
         default=None, description="Structured first-order guard predicate"
     )
+    risk_weight: Optional[float] = Field(
+        default=None, ge=0.0, le=1.0, description="Dynamic risk score increment delta [0.0, 1.0]"
+    )
     description: Optional[str] = Field(default=None, description="Human explanation of rule intent")
 
     def get_guard_predicate(self) -> Optional[Union[CompoundPredicate, AtomicPredicate]]:

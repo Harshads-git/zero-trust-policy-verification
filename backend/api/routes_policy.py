@@ -13,6 +13,8 @@ from backend.models.policy import ZeroTrustPolicy
 from backend.models.report import VerificationReport
 from backend.core.verifier import ZeroTrustVerificationEngine
 from backend.core.smt_solver import Z3ConstraintSolver
+from backend.core.risk_engine import ContinuousRiskEngine
+from backend.core.fsm import FiniteStateMachine
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
 from backend.security import PolicySanitizer
@@ -77,14 +79,45 @@ def verify_policy_with_smt(
                 "witness_model": res.model
             })
 
+    risk_engine = ContinuousRiskEngine()
+    risk_smt_bounds = risk_engine.verify_risk_bounds_with_smt(policy)
+
     return {
         "fsm_report": fsm_report,
         "smt_analysis": {
             "solver_engine": "Microsoft Z3 Theorem Prover",
             "dead_transitions_detected": dead_transitions,
             "has_dead_transitions": len(dead_transitions) > 0,
-            "guard_satisfiability_checks": grant_evaluations
+            "guard_satisfiability_checks": grant_evaluations,
+            "continuous_risk_smt_bounds": risk_smt_bounds
         }
+    }
+
+
+@router.post("/verify-risk", summary="Verify dynamic continuous risk and step-up authentication invariants")
+def verify_policy_risk(
+    policy: ZeroTrustPolicy,
+    stepup_threshold: float = 0.50
+) -> Dict[str, Any]:
+    """
+    Evaluates dynamic continuous risk accumulation along access trajectories (NIST SP 800-207 Tenet 6).
+    Checks whether high-risk execution paths trigger mandatory step-up authentication challenges.
+    """
+    policy = PolicySanitizer.sanitize_policy(policy)
+    fsm = FiniteStateMachine.from_policy(policy)
+    risk_engine = ContinuousRiskEngine(stepup_threshold=stepup_threshold)
+    violations, profiles = risk_engine.evaluate_policy_risk_invariants(fsm, policy)
+    smt_bounds = risk_engine.verify_risk_bounds_with_smt(policy)
+
+    return {
+        "policy_id": policy.policy_id,
+        "policy_name": policy.policy_name,
+        "stepup_threshold": stepup_threshold,
+        "is_risk_compliant": len(violations) == 0,
+        "violations_count": len(violations),
+        "violations": violations,
+        "trajectory_risk_profiles": profiles,
+        "smt_risk_bounds": smt_bounds
     }
 
 

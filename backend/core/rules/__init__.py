@@ -6,6 +6,7 @@ from backend.core.rules.zt_invariants import (
     AuthorizationCheckRule,
     SessionRevocationInvariantRule,
 )
+from backend.core.risk_engine import RiskAdaptiveInvariantRule
 
 __all__ = [
     "BaseVerificationRule",
@@ -16,4 +17,5 @@ __all__ = [
     "DeviceTrustInvariantRule",
     "AuthorizationCheckRule",
     "SessionRevocationInvariantRule",
+    "RiskAdaptiveInvariantRule",
 ]
