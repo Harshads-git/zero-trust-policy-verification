@@ -605,8 +605,8 @@ function renderSmtAndRiskDashboard(smtAnalysis, riskData) {
         deadHtml += `
           <div class="smt-dead-trans-item">
             <strong>Rule ${escapeHtml(d.rule_id)}</strong>: &delta;(${escapeHtml(d.source)}, ${escapeHtml(d.action)}) &rarr; ${escapeHtml(d.target)}
-            <div style="color: #cbd5e1; margin-top: 2px;">Condition: <code>${escapeHtml(d.condition)}</code></div>
-            <div style="color: #fca5a5; margin-top: 2px;">Contradiction: ${escapeHtml(d.explanation)}</div>
+            <div style="color: #cbd5e1; margin-top: 2px;">Condition: <code>${escapeHtml(d.guard || d.condition || 'None')}</code></div>
+            <div style="color: #fca5a5; margin-top: 2px;">Contradiction: ${escapeHtml(d.reason || d.explanation || 'Mathematically unsatisfiable')}</div>
           </div>
         `;
       });
@@ -671,10 +671,11 @@ function renderSmtAndRiskDashboard(smtAnalysis, riskData) {
       let rHtml = "";
       const thresh = riskData.stepup_threshold || 0.50;
       riskData.trajectory_risk_profiles.forEach((p, idx) => {
-        const pathStr = p.path.join(" &rarr; ");
+        const pathArr = p.trajectory || p.path || [];
+        const pathStr = pathArr.join(" &rarr; ");
         const riskPct = Math.min(100, Math.round(p.cumulative_risk * 100));
         const isHigh = p.cumulative_risk >= thresh;
-        const hasStepup = p.has_stepup;
+        const hasStepup = p.step_up_triggered !== undefined ? p.step_up_triggered : p.has_stepup;
         let barColor = "#22c55e";
         if (p.cumulative_risk > 0.70) barColor = "#ef4444";
         else if (p.cumulative_risk >= 0.40) barColor = "#f59e0b";

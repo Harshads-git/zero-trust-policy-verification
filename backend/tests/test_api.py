@@ -114,3 +114,154 @@ def test_delete_policy_endpoint():
     get_res = client.get("/api/policies/pol_api_test_01")
     assert get_res.status_code == 404
 
+
+
+def test_ui_verify_smt_contract():
+    """
+    Verifies that the /api/policies/verify-smt contract matches the exact JSON
+    structure expected by the frontend Visualizer and SMT Inspector.
+    """
+    sample_policy = {
+        "policy_id": "pol_smt_ui_test",
+        "policy_name": "SMT UI Contract Verification",
+        "initial_state": "START",
+        "terminal_states": ["ACCESS_GRANTED", "SESSION_EXPIRED"],
+        "rules": [
+            {
+                "rule_id": "r_auth",
+                "source": "START",
+                "target": "AUTHENTICATED",
+                "action": "authenticate",
+                "condition": "auth_method == 'mfa'"
+            },
+            {
+                "rule_id": "r_grant",
+                "source": "AUTHENTICATED",
+                "target": "ACCESS_GRANTED",
+                "action": "grant",
+                "predicate": {
+                    "attribute": "risk_score",
+                    "operator": "<=",
+                    "value": 0.40
+                }
+            },
+            {
+                "rule_id": "r_dead",
+                "source": "AUTHENTICATED",
+                "target": "SESSION_EXPIRED",
+                "action": "impossible",
+                "predicate": {
+                    "logical_op": "AND",
+                    "predicates": [
+                        {"attribute": "risk_score", "operator": ">", "value": 0.90},
+                        {"attribute": "risk_score", "operator": "<", "value": 0.10}
+                    ]
+                }
+            }
+        ]
+    }
+    response = client.post("/api/policies/verify-smt", json=sample_policy)
+    assert response.status_code == 200
+    data = response.json()
+    assert "fsm_report" in data
+    assert "smt_analysis" in data
+
+    smt = data["smt_analysis"]
+    assert smt["solver_engine"] == "Microsoft Z3 Theorem Prover"
+    assert smt["has_dead_transitions"] is True
+    assert len(smt["dead_transitions_detected"]) == 1
+    dead_entry = smt["dead_transitions_detected"][0]
+    assert dead_entry["rule_id"] == "r_dead"
+    assert "reason" in dead_entry
+
+    # Verify guard satisfiability check for r_grant
+    checks = smt["guard_satisfiability_checks"]
+    assert len(checks) == 1
+    assert checks[0]["rule_id"] == "r_grant"
+    assert checks[0]["is_satisfiable"] is True
+    assert "witness_model" in checks[0]
+    assert checks[0]["witness_model"] is not None
+
+
+def test_ui_verify_risk_contract():
+    """
+    Verifies that the /api/policies/verify-risk contract provides trajectory
+    profiles, continuous risk calculations, and step-up authentication status for the UI.
+    """
+    sample_policy = {
+        "policy_id": "pol_risk_ui_test",
+        "policy_name": "Risk UI Contract Verification",
+        "initial_state": "START",
+        "terminal_states": ["ACCESS_GRANTED", "SESSION_EXPIRED"],
+        "rules": [
+            {
+                "rule_id": "r1",
+                "source": "START",
+                "target": "AUTHENTICATED",
+                "action": "login",
+                "condition": "auth_method == 'mfa'"
+            },
+            {
+                "rule_id": "r2",
+                "source": "AUTHENTICATED",
+                "target": "STEP_UP_AUTH",
+                "action": "challenge_stepup",
+                "condition": "risk_score > 0.50"
+            },
+            {
+                "rule_id": "r3",
+                "source": "STEP_UP_AUTH",
+                "target": "ACCESS_GRANTED",
+                "action": "grant_after_challenge"
+            },
+            {
+                "rule_id": "r4",
+                "source": "ACCESS_GRANTED",
+                "target": "SESSION_EXPIRED",
+                "action": "logout"
+            }
+        ]
+    }
+    response = client.post("/api/policies/verify-risk?stepup_threshold=0.50", json=sample_policy)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["policy_id"] == "pol_risk_ui_test"
+    assert data["stepup_threshold"] == 0.50
+    assert "trajectory_risk_profiles" in data
+    assert len(data["trajectory_risk_profiles"]) >= 1
+
+    profile = data["trajectory_risk_profiles"][0]
+    assert "trajectory" in profile
+    assert profile["trajectory"] == ["START", "AUTHENTICATED", "STEP_UP_AUTH", "ACCESS_GRANTED"]
+    assert "cumulative_risk" in profile
+    assert "step_up_triggered" in profile
+    assert profile["step_up_triggered"] is True
+    assert profile["is_compliant"] is True
+    assert "risk_breakdown" in profile
+
+
+def test_frontend_smt_ui_assets_served():
+    """
+    Verifies that frontend static assets are properly wired and contain
+    SMT theorem prover UI components, CSS classes, and controller functions.
+    """
+    # Check index.html contains SMT elements
+    res_html = client.get("/")
+    assert res_html.status_code == 200
+    assert "btn-verify-smt" in res_html.text
+    assert "smt-inspector-container" in res_html.text
+    assert "First-Order SMT Solver & Risk Dashboard" in res_html.text
+
+    # Check CSS contains SMT styles
+    res_css = client.get("/static/css/style.css")
+    assert res_css.status_code == 200
+    assert ".smt-inspector-box" in res_css.text
+    assert ".btn-smt" in res_css.text
+    assert ".badge-sat" in res_css.text
+
+    # Check JS contains SMT controller functions
+    res_js = client.get("/static/js/app.js")
+    assert res_js.status_code == 200
+    assert "verifyPolicyWithSMT" in res_js.text
+    assert "renderSmtAndRiskDashboard" in res_js.text
