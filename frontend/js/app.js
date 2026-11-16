@@ -496,3 +496,215 @@ async function sendTestCloudWatchMetric() {
   }
 }
 
+
+// ==========================================
+// Day 19: SMT Theorem Prover & Continuous Risk UI
+// ==========================================
+
+function closeSmtInspector() {
+  const panel = document.getElementById("smt-inspector-container");
+  if (panel) panel.style.display = "none";
+}
+
+async function verifyPolicyWithSMT() {
+  const editor = document.getElementById("policy-editor");
+  const rawText = editor.value.trim();
+
+  let policy;
+  try {
+    policy = JSON.parse(rawText);
+  } catch (err) {
+    alert("JSON Parse Error: Please correct policy syntax before verification.\n" + err.message);
+    return;
+  }
+
+  const btn = document.getElementById("btn-verify-smt");
+  const originalText = btn.textContent;
+  btn.textContent = "Solving Z3 SMT...";
+  btn.disabled = true;
+
+  try {
+    // 1. Call SMT Theorem Prover Endpoint
+    const resSmt = await fetch("/api/policies/verify-smt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(policy)
+    });
+
+    if (!resSmt.ok) {
+      const errData = await resSmt.json();
+      throw new Error(errData.detail || "SMT verification server error");
+    }
+
+    const smtResponse = await resSmt.json();
+    const fsmReport = smtResponse.fsm_report;
+    const smtAnalysis = smtResponse.smt_analysis;
+
+    // Render FSM Report and standard metrics
+    currentReport = fsmReport;
+    renderVerificationResults(fsmReport);
+
+    // 2. Call Continuous Risk Engine for dynamic trajectory evaluation
+    let riskData = null;
+    try {
+      const resRisk = await fetch("/api/policies/verify-risk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(policy)
+      });
+      if (resRisk.ok) {
+        riskData = await resRisk.json();
+      }
+    } catch (rErr) {
+      console.warn("Continuous risk verification non-blocking warning:", rErr);
+    }
+
+    // 3. Annotate Directed Automaton Graph with SMT results
+    if (fsmReport.fsm_graph_summary && fsmReport.fsm_graph_summary.elements) {
+      renderFsmGraph(fsmReport.fsm_graph_summary.elements, fsmReport.violations, smtAnalysis);
+    }
+
+    // 4. Render SMT & Continuous Risk Inspector Drawer
+    renderSmtAndRiskDashboard(smtAnalysis, riskData);
+    await loadVerificationHistory();
+  } catch (err) {
+    alert("SMT Verification failed: " + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+function renderSmtAndRiskDashboard(smtAnalysis, riskData) {
+  const container = document.getElementById("smt-inspector-container");
+  if (!container) return;
+  container.style.display = "block";
+
+  // Engine & global status badges
+  const engineBadge = document.getElementById("smt-solver-engine-badge");
+  const statusBadge = document.getElementById("smt-global-status-badge");
+  if (engineBadge) engineBadge.textContent = smtAnalysis.solver_engine || "Microsoft Z3 Theorem Prover";
+
+  if (statusBadge) {
+    if (smtAnalysis.has_dead_transitions) {
+      statusBadge.textContent = "CONTRADICTORY (DEAD TRANSITIONS)";
+      statusBadge.className = "badge badge-unsat";
+    } else {
+      statusBadge.textContent = "SMT SATISFIABLE";
+      statusBadge.className = "badge badge-sat";
+    }
+  }
+
+  // Dead transitions alert
+  const deadAlert = document.getElementById("smt-dead-transitions-alert");
+  if (deadAlert) {
+    if (smtAnalysis.has_dead_transitions && smtAnalysis.dead_transitions_detected && smtAnalysis.dead_transitions_detected.length > 0) {
+      deadAlert.style.display = "block";
+      let deadHtml = `<div style="font-weight: 600; color: #f87171; margin-bottom: 6px;">⚠ ${smtAnalysis.dead_transitions_detected.length} Mathematically Dead Transition(s) Detected:</div>`;
+      smtAnalysis.dead_transitions_detected.forEach(d => {
+        deadHtml += `
+          <div class="smt-dead-trans-item">
+            <strong>Rule ${escapeHtml(d.rule_id)}</strong>: &delta;(${escapeHtml(d.source)}, ${escapeHtml(d.action)}) &rarr; ${escapeHtml(d.target)}
+            <div style="color: #cbd5e1; margin-top: 2px;">Condition: <code>${escapeHtml(d.condition)}</code></div>
+            <div style="color: #fca5a5; margin-top: 2px;">Contradiction: ${escapeHtml(d.explanation)}</div>
+          </div>
+        `;
+      });
+      deadAlert.innerHTML = deadHtml;
+    } else {
+      deadAlert.style.display = "block";
+      deadAlert.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; border-radius: 4px; padding: 8px 12px; color: #86efac; font-size: 11px;">
+          ✓ <strong>First-Order LRA/LIA Consistency:</strong> All transition guard predicates are free from mathematical contradictions.
+        </div>
+      `;
+    }
+  }
+
+  // Witness context models table
+  const witnessContainer = document.getElementById("smt-witness-model-container");
+  if (witnessContainer) {
+    const checks = smtAnalysis.guard_satisfiability_checks || [];
+    if (checks.length === 0) {
+      witnessContainer.innerHTML = `<p style="color: #94a3b8; font-size: 11px;">No explicit guard predicates attached to terminal access grants.</p>`;
+    } else {
+      let tableHtml = `
+        <table class="smt-model-table">
+          <thead>
+            <tr>
+              <th>Rule / Target</th>
+              <th>First-Order Guard Expression</th>
+              <th>SMT Result</th>
+              <th>Satisfying Witness Context Assignment</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      checks.forEach(chk => {
+        const isSat = chk.is_satisfiable;
+        let witnessStr = "None (Unconstrained)";
+        if (chk.witness_model && Object.keys(chk.witness_model).length > 0) {
+          witnessStr = Object.entries(chk.witness_model)
+            .map(([k, v]) => `${k} = ${v}`)
+            .join(", ");
+        }
+        tableHtml += `
+          <tr>
+            <td><code>${escapeHtml(chk.rule_id)}</code> &rarr; <strong>${escapeHtml(chk.target)}</strong></td>
+            <td><code style="color: #38bdf8;">${escapeHtml(chk.guard)}</code></td>
+            <td><span class="badge ${isSat ? 'badge-sat' : 'badge-unsat'}">${chk.smt_status}</span></td>
+            <td><code style="color: #a7f3d0;">${escapeHtml(witnessStr)}</code></td>
+          </tr>
+        `;
+      });
+      tableHtml += `</tbody></table>`;
+      witnessContainer.innerHTML = tableHtml;
+    }
+  }
+
+  // Continuous Risk Trajectory Breakdown
+  const riskContainer = document.getElementById("smt-risk-trajectories-container");
+  if (riskContainer) {
+    if (!riskData || !riskData.trajectory_risk_profiles || riskData.trajectory_risk_profiles.length === 0) {
+      riskContainer.innerHTML = `<p style="color: #94a3b8; font-size: 11px;">No access trajectories leading to terminal grant states.</p>`;
+    } else {
+      let rHtml = "";
+      const thresh = riskData.stepup_threshold || 0.50;
+      riskData.trajectory_risk_profiles.forEach((p, idx) => {
+        const pathStr = p.path.join(" &rarr; ");
+        const riskPct = Math.min(100, Math.round(p.cumulative_risk * 100));
+        const isHigh = p.cumulative_risk >= thresh;
+        const hasStepup = p.has_stepup;
+        let barColor = "#22c55e";
+        if (p.cumulative_risk > 0.70) barColor = "#ef4444";
+        else if (p.cumulative_risk >= 0.40) barColor = "#f59e0b";
+
+        rHtml += `
+          <div class="trajectory-card">
+            <div class="trajectory-path">Trajectory #${idx + 1}: ${pathStr}</div>
+            <div class="trajectory-meta">
+              <span>Cumulative Risk: <strong>${p.cumulative_risk.toFixed(2)}</strong></span>
+              <span>
+                <div class="risk-meter">
+                  <div class="risk-meter-fill" style="width: ${riskPct}%; background-color: ${barColor};"></div>
+                </div>
+              </span>
+              <span>Peak Transition: <strong>${p.peak_transition_risk.toFixed(2)}</strong></span>
+              <span>Threshold &tau;: <strong>${thresh.toFixed(2)}</strong></span>
+              <span style="margin-left: auto;">
+                ${hasStepup ?
+                  '<span class="badge badge-stepup-ok">✓ Step-Up MFA Challenge Verified</span>' :
+                  (isHigh ?
+                    '<span class="badge badge-stepup-warn">⚠ High Risk / Missing Step-Up</span>' :
+                    '<span class="badge" style="background:#1e293b; color:#94a3b8;">Normal Risk Path</span>'
+                  )
+                }
+              </span>
+            </div>
+          </div>
+        `;
+      });
+      riskContainer.innerHTML = rHtml;
+    }
+  }
+}

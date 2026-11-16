@@ -105,6 +105,25 @@ function initVisualizer(containerId = "cy-container") {
         }
       },
       {
+        selector: "edge.dead-transition-edge",
+        style: {
+          "line-color": "#f43f5e",
+          "target-arrow-color": "#f43f5e",
+          "line-style": "dashed",
+          "line-dash-pattern": [6, 3],
+          "width": 3,
+          "opacity": 0.95
+        }
+      },
+      {
+        selector: "edge.sat-edge",
+        style: {
+          "line-color": "#10b981",
+          "target-arrow-color": "#10b981",
+          "width": 2.5
+        }
+      },
+      {
         selector: ".dimmed",
         style: {
           "opacity": 0.2
@@ -266,6 +285,33 @@ function inspectEdge(edge) {
   const action = edge.data("action") || edge.data("label") || "TRANSITION";
   const cond = edge.data("condition") || "None (Unconditional)";
   const isViolation = edge.hasClass("violation-edge") || edge.hasClass("trace-highlight-edge");
+  const isDead = edge.hasClass("dead-transition-edge") || edge.data("is_dead");
+  const smtStatus = edge.data("smt_status");
+  const witness = edge.data("witness_model");
+  const deadExplanation = edge.data("contradiction_explanation");
+
+  let smtSectionHtml = "";
+  if (isDead) {
+    smtSectionHtml = `
+      <div style="margin-top: 10px; padding: 8px 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 4px; color: #fca5a5;">
+        <strong>Mathematically Dead Transition (SMT UNSAT):</strong>
+        <div style="font-size: 11px; margin-top: 4px; color: #fecaca;">${escapeHtml(deadExplanation || "Guard condition is mathematically contradictory under first-order theories.")}</div>
+      </div>
+    `;
+  } else if (smtStatus === "SAT") {
+    let witnessDetails = "";
+    if (witness && Object.keys(witness).length > 0) {
+      witnessDetails = `<div style="font-size: 11px; margin-top: 4px; font-family: var(--font-mono); color: #cbd5e1;">` +
+        Object.entries(witness).map(([k, v]) => `<code>${escapeHtml(k)}: ${escapeHtml(String(v))}</code>`).join(", ") +
+        `</div>`;
+    }
+    smtSectionHtml = `
+      <div style="margin-top: 10px; padding: 8px 12px; background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; border-radius: 4px; color: #86efac;">
+        <strong>Guard Satisfiable (SMT SAT):</strong> Verified by Z3 Solver.
+        ${witnessDetails}
+      </div>
+    `;
+  }
 
   content.innerHTML = `
     <div class="inspector-grid">
@@ -283,9 +329,15 @@ function inspectEdge(edge) {
       </div>
       <div class="inspector-field">
         <span class="inspector-field-label">Verification Status</span>
-        <span class="inspector-field-val">${isViolation ? '<span class="badge" style="background:#7f1d1d;color:#fecaca;">Part of Counterexample Witness Trace</span>' : '<span class="badge" style="background:#14532d;color:#86efac;">Valid Transition</span>'}</span>
+        <span class="inspector-field-val">
+          ${isDead ? '<span class="badge" style="background:#7f1d1d;color:#fca5a5;">Dead Transition (UNSAT)</span> ' : ''}
+          ${isViolation ? '<span class="badge" style="background:#7f1d1d;color:#fecaca;">Part of Counterexample Witness Trace</span> ' : ''}
+          ${!isDead && !isViolation ? '<span class="badge" style="background:#14532d;color:#86efac;">Valid Transition</span> ' : ''}
+          ${smtStatus === 'SAT' ? '<span class="badge" style="background:#064e3b;color:#a7f3d0;">Z3 SAT</span>' : ''}
+        </span>
       </div>
     </div>
+    ${smtSectionHtml}
   `;
 }
 
@@ -374,7 +426,7 @@ function animateWitnessTrace(witnessPath) {
 }
 
 
-function renderFsmGraph(elements, violations = []) {
+function renderFsmGraph(elements, violations = [], smtAnalysis = null) {
   if (!cy) {
     initVisualizer("cy-container");
   }
@@ -401,6 +453,33 @@ function renderFsmGraph(elements, violations = []) {
       cy.nodes(`[id = "${v.state}"]`).addClass("violation-node");
     }
   });
+
+  // Annotate edges with SMT Analysis if provided
+  if (smtAnalysis) {
+    if (smtAnalysis.dead_transitions_detected && smtAnalysis.dead_transitions_detected.length > 0) {
+      smtAnalysis.dead_transitions_detected.forEach(d => {
+        const matchingEdges = cy.edges().filter(e => e.data("rule_id") === d.rule_id || (e.source().id() === d.source && e.target().id() === d.target));
+        matchingEdges.addClass("dead-transition-edge");
+        matchingEdges.data("is_dead", true);
+        matchingEdges.data("contradiction_explanation", d.explanation);
+      });
+    }
+    if (smtAnalysis.guard_satisfiability_checks) {
+      smtAnalysis.guard_satisfiability_checks.forEach(chk => {
+        const matchingEdges = cy.edges().filter(e => e.data("rule_id") === chk.rule_id || (e.source().id() === chk.source && e.target().id() === chk.target));
+        if (chk.is_satisfiable) {
+          matchingEdges.addClass("sat-edge");
+          matchingEdges.data("smt_status", "SAT");
+          matchingEdges.data("witness_model", chk.witness_model);
+          matchingEdges.data("guard_expr", chk.guard);
+        } else {
+          matchingEdges.addClass("dead-transition-edge");
+          matchingEdges.data("smt_status", "UNSAT");
+          matchingEdges.data("is_dead", true);
+        }
+      });
+    }
+  }
 
   applyCurrentLayout(false);
 }

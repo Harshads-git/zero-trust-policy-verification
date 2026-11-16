@@ -614,3 +614,138 @@ table.data-table tr:hover {
 }
 
 
+
+/* First-Order SMT Solver & Continuous Risk Theme Additions */
+.btn-smt {
+  background-color: #4f46e5;
+  color: #ffffff;
+  border: 1px solid #6366f1;
+}
+
+.btn-smt:hover {
+  background-color: #4338ca;
+}
+
+.badge-smt {
+  background-color: #312e81;
+  color: #c7d2fe;
+  border: 1px solid #4f46e5;
+}
+
+.badge-sat {
+  background-color: #14532d;
+  color: #86efac;
+  border: 1px solid #16a34a;
+}
+
+.badge-unsat {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+  border: 1px solid #dc2626;
+}
+
+.badge-stepup-ok {
+  background-color: #064e3b;
+  color: #6ee7b7;
+  border: 1px solid #059669;
+}
+
+.badge-stepup-warn {
+  background-color: #78350f;
+  color: #fde68a;
+  border: 1px solid #d97706;
+}
+
+.smt-inspector-box {
+  background-color: #0c1021;
+  border: 1px solid #6366f1;
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.smt-inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.25);
+  padding-bottom: 8px;
+}
+
+.smt-inspector-heading {
+  font-weight: 600;
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.smt-model-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.smt-model-table th, .smt-model-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+}
+
+.smt-model-table th {
+  color: #94a3b8;
+  background-color: rgba(30, 41, 59, 0.6);
+}
+
+.smt-dead-trans-item {
+  background: rgba(127, 29, 29, 0.2);
+  border-left: 3px solid #ef4444;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.trajectory-card {
+  background-color: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 5px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.trajectory-path {
+  font-family: var(--font-mono);
+  color: #38bdf8;
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.trajectory-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.risk-meter {
+  height: 6px;
+  background: #334155;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 100px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.risk-meter-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}

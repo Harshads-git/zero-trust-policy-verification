@@ -86,6 +86,7 @@
             <textarea id="policy-editor" class="code-editor" spellcheck="false" placeholder="Enter Zero Trust Policy JSON here..."></textarea>
             <div style="margin-top: 12px; display: flex; gap: 8px;">
               <button id="btn-verify" class="btn btn-primary" style="flex: 1;" onclick="verifyCurrentPolicy()">Run Formal Verification</button>
+              <button id="btn-verify-smt" class="btn btn-smt" style="flex: 1;" onclick="verifyPolicyWithSMT()">Run Z3 SMT & Risk</button>
               <button id="btn-save-db" class="btn" onclick="savePolicyToDatabase()">Save to DB</button>
             </div>
           </div>
@@ -147,6 +148,42 @@
             <div id="remediation-plan-container" class="remediation-plan-box" style="display: none;">
               <h3 style="font-size: 14px; margin-bottom: 10px; font-weight: 600; color: #38bdf8;">Automated Remediation Roadmap</h3>
               <div id="remediation-plan-list"></div>
+            </div>
+
+            <!-- SMT Theorem Prover & Continuous Risk Inspector -->
+            <div id="smt-inspector-container" class="smt-inspector-box" style="display: none; margin-top: 16px;">
+              <div class="smt-inspector-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="smt-inspector-heading">First-Order SMT Solver & Risk Dashboard</span>
+                  <span class="badge badge-smt" id="smt-solver-engine-badge">Microsoft Z3 Theorem Prover</span>
+                  <span class="badge" id="smt-global-status-badge">SAT</span>
+                </div>
+                <button class="btn btn-sm" onclick="closeSmtInspector()">Close</button>
+              </div>
+              <div class="smt-inspector-body">
+                <!-- SMT Dead Transitions Alert (if any) -->
+                <div id="smt-dead-transitions-alert" style="display: none; margin-bottom: 12px;"></div>
+
+                <!-- SMT Satisfying Witness Context Model -->
+                <div style="margin-bottom: 14px;">
+                  <h4 style="font-size: 12px; color: #a5b4fc; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Z3 Satisfying Context Witness (Formal Model Extraction)
+                  </h4>
+                  <div id="smt-witness-model-container">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <!-- Continuous Risk Trajectory Breakdown (NIST SP 800-207 Tenet 6) -->
+                <div>
+                  <h4 style="font-size: 12px; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Continuous Risk-Adaptive Trajectory Analysis (Step-Up Dynamic Auth)
+                  </h4>
+                  <div id="smt-risk-trajectories-container">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -223,6 +260,18 @@
             <h3>4. Absence of Dead/Trap States</h3>
             <p>Non-terminal states must not trap access requests into infinite non-responsive states.</p>
             <div class="formal-math">&forall; q &isin; Q \ F, &exist; f &isin; F : Reachable(q, f)</div>
+          </div>
+
+          <div class="invariant-item">
+            <h3>5. Guard Satisfiability & Dead Transition Elimination (SMT)</h3>
+            <p>Every transition guard predicate &Phi;(guard(e)) must be mathematically satisfiable by at least one valid access context under first-order theories (LRA, QF_LIA, Strings).</p>
+            <div class="formal-math">&forall; e = (u, v) &isin; E : SMT-Solve(&Phi;(guard(e))) = SAT</div>
+          </div>
+
+          <div class="invariant-item">
+            <h3>6. Continuous Risk-Adaptive Step-Up Invariant (NIST SP 800-207 Tenet 6)</h3>
+            <p>Any trajectory leading to ACCESS_GRANTED whose cumulative risk score exceeds threshold &tau; must traverse a dynamic step-up authentication challenge.</p>
+            <div class="formal-math">&forall; path &pi; = (q<sub>0</sub>, ..., ACCESS_GRANTED) : PeakRisk(&pi;) &ge; &tau; &rArr; &exist; q<sub>i</sub> &isin; &pi; s.t. q<sub>i</sub> &isin; {MFA_CHALLENGE, STEP_UP_AUTH}</div>
           </div>
         </div>
       </div>
