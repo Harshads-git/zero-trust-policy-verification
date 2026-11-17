@@ -769,7 +769,53 @@
 
 ---
 
-*(Days 20 through 30 are documented in subsequent log entries.)*
+### Sprint 5: Automated Policy Repair & Counterexample-Guided Synthesis (CEGIS) (Days 20 – 23)
+
+### DAY 20: Minimal Graph Surgery, Policy Synthesis & RFC 6902 Patch Generator
+**Date**: September 28, 2026  
+**Objective**: Transition from passive verification to proactive automated synthesis by implementing minimal graph surgery operators, counterexample-guided flaw resolution, and RFC 6902 JSON Patch delta generation.
+
+#### 1. Tasks Executed
+- [x] Engineered `PolicySynthesizer` in `backend/core/synthesizer.py`:
+  - **Counterexample-Guided Diagnostics**: Analyzes formal violation witness paths $\pi = \langle q_0, \dots, q_k \rangle$ to determine exact failure loci and missing architectural checkpoints.
+  - **Minimal Graph Surgery Operators**:
+    - `INTERPOSE_STATE`: Splices required verification checkpoints ($q_{\text{mid}} \in \{\text{AUTHENTICATED}, \text{DEVICE\_VERIFIED}, \text{STEP\_UP\_AUTH}\}$) into direct bypass transitions $(u, v) \to (u, q_{\text{mid}}) \land (q_{\text{mid}}, v)$.
+    - `ADD_REVOCATION_PATH`: Injects forward lifecycle termination transitions from `ACCESS_GRANTED` to `SESSION_EXPIRED` and `REVOKED`, eliminating perpetual zombie grants.
+    - `CONNECT_DEAD_STATE`: Connects trapped non-terminal states to safe `ACCESS_DENIED` sinks.
+    - `TIGHTEN_GUARD` & `RESOLVE_CONFLICT`: Differentiates nondeterministic transitions with specialized role or risk guards.
+  - **Weighted Graph Edit Distance (GED)**:
+    $$\min_{\Delta} \ \text{Cost}(\Delta) = w_{\text{del}} |\delta^-| + w_{\text{add}} |\delta^+| + w_{\text{mod}} |\Delta_{\text{guard}}|$$
+    Minimizes perturbation to original policy intent while mathematically satisfying all safety invariants.
+  - **RFC 6902 JSON Patch Document Generation**:
+    - Emits standard JSON Pointer operation arrays (`add`, `remove`, `replace`) compatible with RFC 6902.
+    - Built standalone `apply_rfc6902_patch(dict, patch)` utility enabling round-trip execution across external GitOps and CI/CD pipelines.
+  - **Soundness Validation**:
+    - Automatically executes a re-verification pass on synthesized candidates (`ZeroTrustVerificationEngine().verify(repaired_policy)`), verifying that generated policies achieve compliance.
+- [x] Exposed REST Endpoints in `backend/api/routes_policy.py`:
+  - `POST /api/policies/synthesize-patch`: Accepts raw policy JSON, runs model checking, and synthesizes minimal graph surgery patches and RFC 6902 document.
+  - `POST /api/policies/{policy_id}/synthesize-patch`: Synthesizes repair for any stored policy by ID.
+- [x] Created Comprehensive Synthesis Test Suite (`backend/tests/test_synthesis.py`):
+  - 7 unit and integration tests verifying compliant policy zero-edit bypass, authentication interposition, device posture interposition, revocation injection, dead state reconnection, RFC 6902 round-trip patch application, and REST API behavior.
+  - Expanded automated test suite to **104 passing tests** with 100% pass rate.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Minimal Graph Surgery vs. Full From-Scratch Synthesis**  
+  *Rationale*: In enterprise zero-trust access control, administrators already have established business workflows. Generating an entirely new policy from scratch destroys custom rule IDs, annotations, and operational intent. Minimal graph surgery uses localized edge interposition and edge deletion to compute the minimal mathematical delta $\Delta(G, G')$ needed to satisfy invariants while preserving business reachability.
+- **Decision 2: RFC 6902 JSON Patch Standard Compliance**  
+  *Rationale*: Emitting proprietary diff formats limits integration to this specific engine. Adopting RFC 6902 (JavaScript Object Notation (JSON) Patch) allows the synthesized patches to be consumed directly by Kubernetes admission controllers, Open Policy Agent (OPA) gatekeepers, and Terraform/AWS CloudFormation IaC linters without custom translation layers.
+
+#### 3. Git Commits for Day 20
+- `f474c6b` - `feat(synthesis): implement minimal graph surgery, patch generator, and RFC 6902 delta synthesizer`
+- `908fb3f` - `test(synthesis): add test suite for graph surgery operations, patch generation, and policy repair`
+- `docs: add Day 20 graph surgery, policy synthesis patch generator, and RFC 6902 engineering log`
+
+#### 4. Reflections & Next Steps for Day 21
+- *Reflection*: Moving from "pointing out flaws" to "synthesizing mathematically minimal self-healing fixes" transforms AxiomTrust from an analytical verifier into an intelligent, autonomous policy synthesis platform.
+- *Tomorrow's Goal (Day 21)*: Automated Counterexample-Guided Inductive Synthesis (CEGIS) Loop: Multi-iteration refinement loop with inductive constraint accumulation and convergence bounds.
+
+---
+
+*(Days 21 through 30 are documented in subsequent log entries.)*
 
 
 
