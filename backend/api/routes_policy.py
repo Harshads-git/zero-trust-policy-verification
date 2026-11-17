@@ -15,12 +15,14 @@ from backend.core.verifier import ZeroTrustVerificationEngine
 from backend.core.smt_solver import Z3ConstraintSolver
 from backend.core.risk_engine import ContinuousRiskEngine
 from backend.core.fsm import FiniteStateMachine
+from backend.core.synthesizer import PolicySynthesizer, SynthesisResult
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
 from backend.security import PolicySanitizer
 
 router = APIRouter(prefix="/policies", tags=["Zero Trust Policies"])
 verifier = ZeroTrustVerificationEngine()
+synthesizer = PolicySynthesizer()
 
 
 @router.post("/verify", response_model=VerificationReport, summary="Verify policy against Zero Trust & TOC invariants")
@@ -198,6 +200,36 @@ def delete_policy(policy_id: str, repo: PolicyRepository = Depends(get_repositor
         raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
     return {"message": f"Policy '{policy_id}' deleted successfully."}
 
+
+
+@router.post("/synthesize-patch", response_model=SynthesisResult, summary="Synthesize minimal graph surgery patch & RFC 6902 delta")
+def synthesize_policy_patch(
+    policy: ZeroTrustPolicy
+) -> SynthesisResult:
+    """
+    Counterexample-Guided Inductive Synthesis (CEGIS).
+    Analyzes formal violation counterexamples, computes minimal graph surgery operations,
+    and returns compliant policy candidate alongside an RFC 6902 JSON Patch document.
+    """
+    policy = PolicySanitizer.sanitize_policy(policy)
+    result = synthesizer.synthesize_repair(policy)
+    return result
+
+
+@router.post("/{policy_id}/synthesize-patch", response_model=SynthesisResult, summary="Synthesize minimal patch for stored policy")
+def synthesize_stored_policy_patch(
+    policy_id: str,
+    repo: PolicyRepository = Depends(get_repository)
+) -> SynthesisResult:
+    """
+    Retrieves stored policy by ID, analyzes formal counterexamples, and synthesizes
+    minimal graph surgery patches with RFC 6902 JSON Patch document.
+    """
+    policy = repo.get_policy(policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
+    result = synthesizer.synthesize_repair(policy)
+    return result
 
 
 @router.get("/reports/history", response_model=List[VerificationReport], summary="Retrieve verification audit history")
