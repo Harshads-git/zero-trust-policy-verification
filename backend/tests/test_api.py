@@ -265,3 +265,39 @@ def test_frontend_smt_ui_assets_served():
     assert res_js.status_code == 200
     assert "verifyPolicyWithSMT" in res_js.text
     assert "renderSmtAndRiskDashboard" in res_js.text
+
+
+def test_frontend_cegis_ui_assets_served():
+    """
+    Verifies that frontend static assets are properly wired and contain
+    CEGIS self-healing UI components, visual graph diff classes, and controller functions.
+    """
+    # Check index.html contains CEGIS elements
+    res_html = client.get("/")
+    assert res_html.status_code == 200
+    assert "btn-cegis-repair" in res_html.text
+    assert "cegis-inspector-container" in res_html.text
+    assert "CEGIS Self-Healing Policy Synthesizer" in res_html.text
+    assert "btn-view-diff" in res_html.text
+    assert "btn-apply-cegis" in res_html.text
+
+    # Check CSS contains CEGIS styles
+    res_css = client.get("/static/css/style.css")
+    assert res_css.status_code == 200
+    assert ".btn-cegis" in res_css.text
+    assert ".cegis-inspector-box" in res_css.text
+    assert ".cegis-trace-table" in res_css.text
+
+    # Check visualizer JS contains graph diff functions and styles
+    res_viz = client.get("/static/js/visualizer.js")
+    assert res_viz.status_code == 200
+    assert "renderGraphDiff" in res_viz.text
+    assert "diff-added" in res_viz.text
+    assert "diff-removed" in res_viz.text
+
+    # Check app JS contains CEGIS controller functions
+    res_js = client.get("/static/js/app.js")
+    assert res_js.status_code == 200
+    assert "runCegisAutoRepair" in res_js.text
+    assert "applySynthesizedRepairToEditor" in res_js.text
+    assert "switchGraphView" in res_js.text
