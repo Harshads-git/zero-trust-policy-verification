@@ -16,6 +16,7 @@ from backend.core.smt_solver import Z3ConstraintSolver
 from backend.core.risk_engine import ContinuousRiskEngine
 from backend.core.fsm import FiniteStateMachine
 from backend.core.synthesizer import PolicySynthesizer, SynthesisResult
+from backend.core.cegis_loop import CEGISEngine, CEGISResult
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
 from backend.security import PolicySanitizer
@@ -23,6 +24,7 @@ from backend.security import PolicySanitizer
 router = APIRouter(prefix="/policies", tags=["Zero Trust Policies"])
 verifier = ZeroTrustVerificationEngine()
 synthesizer = PolicySynthesizer()
+cegis_engine = CEGISEngine()
 
 
 @router.post("/verify", response_model=VerificationReport, summary="Verify policy against Zero Trust & TOC invariants")
@@ -230,6 +232,36 @@ def synthesize_stored_policy_patch(
         raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
     result = synthesizer.synthesize_repair(policy)
     return result
+
+
+@router.post("/cegis-repair", response_model=CEGISResult, summary="Execute multi-iteration CEGIS loop for automated policy repair")
+def run_cegis_repair(
+    policy: ZeroTrustPolicy,
+    max_iterations: int = 5
+) -> CEGISResult:
+    """
+    Executes the full Counterexample-Guided Inductive Synthesis (CEGIS) loop:
+    Iteratively proposes candidate graph surgery patches, queries the verification oracle,
+    accumulates counterexample witness traces, and refines candidates until provable compliance.
+    """
+    policy = PolicySanitizer.sanitize_policy(policy)
+    return cegis_engine.run_cegis_loop(policy, max_iterations=max_iterations)
+
+
+@router.post("/{policy_id}/cegis-repair", response_model=CEGISResult, summary="Execute CEGIS repair loop for a stored policy")
+def run_stored_policy_cegis_repair(
+    policy_id: str,
+    max_iterations: int = 5,
+    repo: PolicyRepository = Depends(get_repository)
+) -> CEGISResult:
+    """
+    Retrieves stored policy by ID and runs iterative CEGIS loop until all invariant violations
+    are eliminated or max_iterations bound is reached.
+    """
+    policy = repo.get_policy(policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
+    return cegis_engine.run_cegis_loop(policy, max_iterations=max_iterations)
 
 
 @router.get("/reports/history", response_model=List[VerificationReport], summary="Retrieve verification audit history")

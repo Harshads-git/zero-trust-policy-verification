@@ -10,6 +10,12 @@ from backend.core.synthesizer import (
     RFC6902Op,
     apply_rfc6902_patch
 )
+from backend.core.cegis_loop import (
+    CEGISEngine,
+    CEGISResult,
+    CEGISStatus,
+    CEGISIterationRecord
+)
 
 __all__ = [
     "FiniteStateMachine",
@@ -23,4 +29,8 @@ __all__ = [
     "PatchOpType",
     "RFC6902Op",
     "apply_rfc6902_patch",
+    "CEGISEngine",
+    "CEGISResult",
+    "CEGISStatus",
+    "CEGISIterationRecord",
 ]
