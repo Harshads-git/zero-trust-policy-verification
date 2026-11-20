@@ -232,6 +232,10 @@ class PolicySynthesizer:
         elif v_type == ViolationType.UNREACHABLE_STATE:
             return self._repair_unreachable_state(policy, violation)
 
+        # 8. MISSING_AUTHORIZATION
+        elif v_type == ViolationType.MISSING_AUTHORIZATION:
+            return self._repair_missing_authorization(policy, violation)
+
         return None
 
     def _repair_missing_authentication(
@@ -266,32 +270,69 @@ class PolicySynthesizer:
                     break
 
         if target_rule:
-            rule_in = PolicyRule(
-                rule_id=f"rule_synth_auth_in_{uuid.uuid4().hex[:4]}",
-                source=target_rule.source,
-                target="AUTHENTICATED",
-                action="authenticate",
-                condition="auth_method == 'mfa'",
-                description="Synthesized: enforce MFA identity authentication checkpoint"
-            )
-            rule_out = PolicyRule(
-                rule_id=f"rule_synth_auth_out_{uuid.uuid4().hex[:4]}",
-                source="AUTHENTICATED",
-                target=target_rule.target,
-                action=target_rule.action or "grant",
-                condition=target_rule.condition,
-                description=f"Synthesized: proceed to {target_rule.target} after valid authentication"
-            )
-            return GraphSurgeryPatch(
-                op_type=PatchOpType.INTERPOSE_STATE,
-                target_rule_id=target_rule.rule_id,
-                affected_states=[target_rule.source, "AUTHENTICATED", target_rule.target],
-                description=f"Interpose AUTHENTICATED checkpoint splitting bypass edge ({target_rule.source} -> {target_rule.target})",
-                violation_addressed=violation.type.value,
-                rules_to_remove=[target_rule.rule_id],
-                rules_to_add=[rule_in, rule_out],
-                edit_distance_cost=2.0  # 1 removal + 2 additions
-            )
+            if target_rule.target == "ACCESS_GRANTED":
+                # Interpose full compliant pipeline: START -> AUTHENTICATED -> DEVICE_VERIFIED -> ACCESS_GRANTED
+                rule_auth = PolicyRule(
+                    rule_id=f"rule_synth_auth_in_{uuid.uuid4().hex[:4]}",
+                    source=target_rule.source,
+                    target="AUTHENTICATED",
+                    action="authenticate",
+                    condition="auth_method == 'mfa'",
+                    description="Synthesized: enforce MFA identity authentication checkpoint"
+                )
+                rule_dev = PolicyRule(
+                    rule_id=f"rule_synth_dev_mid_{uuid.uuid4().hex[:4]}",
+                    source="AUTHENTICATED",
+                    target="DEVICE_VERIFIED",
+                    action="verify_device",
+                    condition="device_health == 'compliant'",
+                    description="Synthesized: validate endpoint posture before grant"
+                )
+                rule_grant = PolicyRule(
+                    rule_id=f"rule_synth_auth_out_{uuid.uuid4().hex[:4]}",
+                    source="DEVICE_VERIFIED",
+                    target="ACCESS_GRANTED",
+                    action=target_rule.action or "grant",
+                    condition="role == 'user' AND perm == 'access'",
+                    description="Synthesized: authorized grant from verified device"
+                )
+                return GraphSurgeryPatch(
+                    op_type=PatchOpType.INTERPOSE_STATE,
+                    target_rule_id=target_rule.rule_id,
+                    affected_states=[target_rule.source, "AUTHENTICATED", "DEVICE_VERIFIED", "ACCESS_GRANTED"],
+                    description=f"Interpose AUTHENTICATED and DEVICE_VERIFIED checkpoints on direct bypass ({target_rule.source} -> {target_rule.target})",
+                    violation_addressed=violation.type.value,
+                    rules_to_remove=[target_rule.rule_id],
+                    rules_to_add=[rule_auth, rule_dev, rule_grant],
+                    edit_distance_cost=2.5
+                )
+            else:
+                rule_in = PolicyRule(
+                    rule_id=f"rule_synth_auth_in_{uuid.uuid4().hex[:4]}",
+                    source=target_rule.source,
+                    target="AUTHENTICATED",
+                    action="authenticate",
+                    condition="auth_method == 'mfa'",
+                    description="Synthesized: enforce MFA identity authentication checkpoint"
+                )
+                rule_out = PolicyRule(
+                    rule_id=f"rule_synth_auth_out_{uuid.uuid4().hex[:4]}",
+                    source="AUTHENTICATED",
+                    target=target_rule.target,
+                    action=target_rule.action or "grant",
+                    condition=target_rule.condition,
+                    description=f"Synthesized: proceed to {target_rule.target} after valid authentication"
+                )
+                return GraphSurgeryPatch(
+                    op_type=PatchOpType.INTERPOSE_STATE,
+                    target_rule_id=target_rule.rule_id,
+                    affected_states=[target_rule.source, "AUTHENTICATED", target_rule.target],
+                    description=f"Interpose AUTHENTICATED checkpoint splitting bypass edge ({target_rule.source} -> {target_rule.target})",
+                    violation_addressed=violation.type.value,
+                    rules_to_remove=[target_rule.rule_id],
+                    rules_to_add=[rule_in, rule_out],
+                    edit_distance_cost=2.0
+                )
 
         # Default fallback: add START -> AUTHENTICATED
         rule_add = PolicyRule(
@@ -552,23 +593,84 @@ class PolicySynthesizer:
         violation: PolicyViolation
     ) -> GraphSurgeryPatch:
         """
-        Connects an orphaned state from START or removes dangling rules.
+        Connects an orphaned state with a semantically valid, non-conflicting transition.
         """
         unreachable = violation.state or "ORPHANED_STATE"
+
+        if unreachable == "SESSION_EXPIRED":
+            src = "ACCESS_GRANTED" if any(r.target == "ACCESS_GRANTED" or r.source == "ACCESS_GRANTED" for r in policy.rules) else "AUTHENTICATED"
+            act = "session_timeout"
+            desc = "Synthesized: bounded session lease expiration"
+        elif unreachable == "REVOKED":
+            src = "ACCESS_GRANTED" if any(r.target == "ACCESS_GRANTED" or r.source == "ACCESS_GRANTED" for r in policy.rules) else "AUTHENTICATED"
+            act = "admin_revoke"
+            desc = "Synthesized: administrative immediate revocation"
+        elif unreachable == "ACCESS_DENIED":
+            src = "AUTHENTICATED" if any(r.target == "AUTHENTICATED" or r.source == "AUTHENTICATED" for r in policy.rules) else "START"
+            act = "deny_access"
+            desc = "Synthesized: denial sink for non-compliant requests"
+        else:
+            src = "AUTHENTICATED" if any(r.target == "AUTHENTICATED" or r.source == "AUTHENTICATED" for r in policy.rules) else "START"
+            act = f"route_{unreachable.lower()}"
+            desc = f"Synthesized: link orphaned state {unreachable} from primary workflow"
+
         r_connect = PolicyRule(
             rule_id=f"rule_synth_reach_{uuid.uuid4().hex[:4]}",
-            source="AUTHENTICATED",
+            source=src,
             target=unreachable,
-            action="enter_substate",
-            description=f"Synthesized: link orphaned state {unreachable} from primary workflow"
+            action=act,
+            description=desc
         )
         return GraphSurgeryPatch(
             op_type=PatchOpType.INJECT_TRANSITION,
-            affected_states=["AUTHENTICATED", unreachable],
-            description=f"Connect unreachable state {unreachable} from AUTHENTICATED",
+            affected_states=[src, unreachable],
+            description=f"Connect unreachable state {unreachable} from {src} via {act}",
             violation_addressed=violation.type.value,
             rules_to_add=[r_connect],
             edit_distance_cost=1.0
+        )
+
+    def _repair_missing_authorization(
+        self,
+        policy: ZeroTrustPolicy,
+        violation: PolicyViolation
+    ) -> GraphSurgeryPatch:
+        """
+        Tightens guard condition on transition to ACCESS_GRANTED to include explicit role authorization.
+        """
+        target_rule = None
+        if violation.rule_id:
+            for r in policy.rules:
+                if r.rule_id == violation.rule_id:
+                    target_rule = r
+                    break
+        if not target_rule:
+            for r in policy.rules:
+                if r.target == "ACCESS_GRANTED":
+                    target_rule = r
+                    break
+
+        if target_rule:
+            mod_rule = copy.deepcopy(target_rule)
+            cond = mod_rule.condition or ""
+            if not any(k in cond.lower() for k in ["role", "perm", "auth", "allow"]):
+                mod_rule.condition = f"{cond} AND role == 'user'".strip(" AND ")
+            mod_rule.description = "Synthesized: enforce explicit role authorization guard"
+            return GraphSurgeryPatch(
+                op_type=PatchOpType.TIGHTEN_GUARD,
+                target_rule_id=target_rule.rule_id,
+                affected_states=[target_rule.source, target_rule.target],
+                description=f"Enforce authorization role guard on rule {target_rule.rule_id}",
+                violation_addressed=violation.type.value,
+                rules_to_modify=[mod_rule],
+                edit_distance_cost=0.5
+            )
+
+        return GraphSurgeryPatch(
+            op_type=PatchOpType.TIGHTEN_GUARD,
+            description="Enforce resource permission check",
+            violation_addressed=violation.type.value,
+            edit_distance_cost=0.5
         )
 
     def _apply_patches_to_policy(
