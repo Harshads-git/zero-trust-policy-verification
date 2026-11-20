@@ -8,7 +8,7 @@
 [![Risk Engine: NIST Tenet 6](https://img.shields.io/badge/Risk%20Engine-Continuous%20Adaptive-green.svg)](backend/core/risk_engine.py)
 [![Zero Trust Standard](https://img.shields.io/badge/NIST%20SP%20800--207-Zero%20Trust%20Compliant-red.svg)](docs/capstone_project_report.md)
 [![AWS Free Tier](https://img.shields.io/badge/AWS-100%25%20Free%20Tier%20Compliant-FF9900.svg?logo=amazon-aws&logoColor=white)](infrastructure/)
-[![Tests](https://img.shields.io/badge/pytest-111%20passed%20(100%25)-success.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/pytest-112%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
@@ -270,7 +270,7 @@ python run_demo.py --serve
 
 ---
 
-## 8. Automated Test Suite (111 Tests)
+## 8. Automated Test Suite (112 Tests)
 
 Execute the full automated test suite using `pytest`:
 
@@ -286,7 +286,7 @@ python -m pytest backend/tests -v
 | `test_zt_invariants.py` | NIST SP 800-207 safety invariants (Auth, Device, PoLP, Revocation) | 8 |
 | `test_verifier.py` | Ground-truth verification across all 7 flaw categories | 11 |
 | `test_verification_report.py` | Risk score formula (0-100), posture classification, remediation plans | 4 |
-| `test_api.py` | FastAPI REST endpoints, timing middleware, SMT & continuous risk UI contracts | 13 |
+| `test_api.py` | FastAPI REST endpoints, timing middleware, SMT, risk, & CEGIS UI contracts | 14 |
 | `test_cloud.py` | CloudWatch offline queue buffering, S3 backup fallback, cloud routes | 8 |
 | `test_storage_consistency.py` | SQLite 5 B-Tree indexes, DynamoDB single-table keys, migration parity | 5 |
 | `test_security.py` | JSON bomb depth ceiling, XSS sanitization, null bytes, rate limiter | 8 |
@@ -296,7 +296,7 @@ python -m pytest backend/tests -v
 | `test_risk_engine.py` | Dynamic continuous risk accumulation, step-up invariant (NIST Tenet 6), SMT bounds | 7 |
 | `test_synthesis.py` | Counterexample-guided graph surgery, patch synthesis, RFC 6902 delta | 7 |
 | `test_cegis_loop.py` | Multi-iteration CEGIS loop, witness accumulation, convergence bounds | 7 |
-| **Total** | **Comprehensive Full-Stack Test Coverage** | **111 (100% Pass)** |
+| **Total** | **Comprehensive Full-Stack Test Coverage** | **112 (100% Pass)** |
 
 ---
 
