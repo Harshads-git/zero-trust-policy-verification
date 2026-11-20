@@ -749,3 +749,66 @@ table.data-table tr:hover {
   height: 100%;
   transition: width 0.3s ease;
 }
+
+/* CEGIS Self-Healing & Visual Graph Diff Styling */
+.btn-cegis {
+  background-color: #059669;
+  color: #ffffff;
+  border: 1px solid #10b981;
+}
+
+.btn-cegis:hover {
+  background-color: #047857;
+}
+
+.badge-cegis {
+  background-color: #064e3b;
+  color: #6ee7b7;
+  border: 1px solid #059669;
+}
+
+.cegis-inspector-box {
+  background-color: #09131d;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.cegis-inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  padding-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cegis-inspector-heading {
+  font-weight: 600;
+  color: #34d399;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cegis-trace-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.cegis-trace-table th, .cegis-trace-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+}
+
+.cegis-trace-table th {
+  color: #94a3b8;
+  background-color: rgba(30, 41, 59, 0.6);
+}

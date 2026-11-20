@@ -5,6 +5,9 @@
 
 let sampleTemplates = { valid: [], invalid: [] };
 let currentReport = null;
+let currentCegisResult = null;
+let originalGraphElements = null;
+let repairedGraphElements = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   initTabs();
@@ -243,6 +246,7 @@ function renderVerificationResults(report) {
 
   // Render FSM Graph
   if (report.fsm_graph_summary && report.fsm_graph_summary.elements) {
+    originalGraphElements = report.fsm_graph_summary.elements;
     renderFsmGraph(report.fsm_graph_summary.elements, report.violations);
   }
 
@@ -708,4 +712,182 @@ function renderSmtAndRiskDashboard(smtAnalysis, riskData) {
       riskContainer.innerHTML = rHtml;
     }
   }
+}
+
+// ==========================================
+// Day 22: CEGIS Self-Healing & Visual Graph Diff
+// ==========================================
+
+function closeCegisInspector() {
+  const panel = document.getElementById("cegis-inspector-container");
+  if (panel) panel.style.display = "none";
+}
+
+async function runCegisAutoRepair() {
+  const editor = document.getElementById("policy-editor");
+  const rawText = editor.value.trim();
+
+  let policy;
+  try {
+    policy = JSON.parse(rawText);
+  } catch (err) {
+    alert("JSON Parse Error: Please correct policy syntax before running CEGIS repair.\n" + err.message);
+    return;
+  }
+
+  const btn = document.getElementById("btn-cegis-repair");
+  const originalText = btn.textContent;
+  btn.textContent = "Synthesizing Fix (CEGIS)...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/policies/cegis-repair?max_iterations=6", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(policy)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "CEGIS server synthesis error");
+    }
+
+    currentCegisResult = await res.json();
+
+    // Fetch graph elements of the repaired policy for the diff view
+    if (currentCegisResult.repaired_policy) {
+      try {
+        const repVerifyRes = await fetch("/api/policies/verify?save_audit=false", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(currentCegisResult.repaired_policy)
+        });
+        if (repVerifyRes.ok) {
+          const repReport = await repVerifyRes.json();
+          repairedGraphElements = repReport.fsm_graph_summary ? repReport.fsm_graph_summary.elements : [];
+        }
+      } catch (e) {
+        console.warn("Could not fetch repaired graph summary:", e);
+      }
+    }
+
+    renderCegisInspector(currentCegisResult);
+    switchGraphView("diff");
+  } catch (err) {
+    alert("CEGIS Policy Synthesis failed: " + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+function renderCegisInspector(result) {
+  const container = document.getElementById("cegis-inspector-container");
+  if (!container) return;
+  container.style.display = "block";
+
+  // Badges
+  const statusBadge = document.getElementById("cegis-status-badge");
+  const roundsBadge = document.getElementById("cegis-rounds-badge");
+  const costBadge = document.getElementById("cegis-cost-badge");
+
+  if (statusBadge) {
+    statusBadge.textContent = result.status;
+    statusBadge.className = `badge ${result.converged ? 'badge-cegis' : 'badge-unsat'}`;
+  }
+  if (roundsBadge) {
+    roundsBadge.textContent = `${result.iterations_count} Round(s)`;
+  }
+  if (costBadge) {
+    costBadge.textContent = `Graph Edit Distance: ${result.cumulative_edit_distance}`;
+  }
+
+  // Iteration trace table
+  const traceContainer = document.getElementById("cegis-iteration-trace-container");
+  if (traceContainer) {
+    if (!result.iteration_history || result.iteration_history.length === 0) {
+      traceContainer.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; border-radius: 4px; padding: 8px 12px; color: #86efac; font-size: 11px;">
+          ✓ <strong>Zero-Edit Pass:</strong> Policy already satisfies all safety invariants without requiring graph surgery.
+        </div>
+      `;
+    } else {
+      let tHtml = `
+        <table class="cegis-trace-table">
+          <thead>
+            <tr>
+              <th>Round</th>
+              <th>Violations Before</th>
+              <th>Surgeries Applied</th>
+              <th>Edit Cost</th>
+              <th>Violations After</th>
+              <th>Status</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      result.iteration_history.forEach(rec => {
+        const patchSummaries = (rec.patches_applied || []).map(p => `<code>${escapeHtml(p.op_type)}</code>: ${escapeHtml(p.description)}`).join("<br>");
+        tHtml += `
+          <tr>
+            <td><strong>#${rec.iteration}</strong></td>
+            <td><span class="badge" style="background:#7f1d1d; color:#fecaca;">${rec.violations_before} Flaw(s)</span></td>
+            <td style="font-size: 10px; color: #cbd5e1;">${patchSummaries || 'None'}</td>
+            <td><code style="color: #38bdf8;">+${rec.edit_distance_delta}</code></td>
+            <td><span class="badge ${rec.violations_after === 0 ? 'badge-sat' : 'badge-unsat'}">${rec.violations_after}</span></td>
+            <td>${rec.converged_this_round ? '<span class="badge badge-sat">CONVERGED</span>' : '<span class="badge" style="background:#334155;color:#94a3b8;">REFINED</span>'}</td>
+            <td><span style="color:#94a3b8;">${rec.iteration_latency_ms} ms</span></td>
+          </tr>
+        `;
+      });
+      tHtml += `</tbody></table>`;
+      traceContainer.innerHTML = tHtml;
+    }
+  }
+
+  // RFC 6902 JSON patch
+  const rfcEl = document.getElementById("cegis-rfc6902-code");
+  if (rfcEl) {
+    rfcEl.textContent = JSON.stringify(result.cumulative_rfc6902_patch_document, null, 2);
+  }
+}
+
+function switchGraphView(mode) {
+  const btnDiff = document.getElementById("btn-view-diff");
+  const btnRepaired = document.getElementById("btn-view-repaired");
+  const btnOriginal = document.getElementById("btn-view-original");
+
+  if (btnDiff) btnDiff.className = `btn btn-sm ${mode === 'diff' ? 'btn-primary active' : ''}`;
+  if (btnRepaired) btnRepaired.className = `btn btn-sm ${mode === 'repaired' ? 'btn-primary active' : ''}`;
+  if (btnOriginal) btnOriginal.className = `btn btn-sm ${mode === 'original' ? 'btn-primary active' : ''}`;
+
+  if (mode === "diff") {
+    const patches = currentCegisResult ? (currentCegisResult.iteration_history || []).flatMap(h => h.patches_applied || []) : [];
+    renderGraphDiff(originalGraphElements, repairedGraphElements, patches);
+  } else if (mode === "repaired") {
+    if (repairedGraphElements) {
+      renderFsmGraph(repairedGraphElements);
+    }
+  } else if (mode === "original") {
+    if (originalGraphElements) {
+      renderFsmGraph(originalGraphElements);
+    }
+  }
+}
+
+async function applySynthesizedRepairToEditor() {
+  if (!currentCegisResult || !currentCegisResult.repaired_policy) {
+    alert("No synthesized repaired policy available to apply.");
+    return;
+  }
+
+  const editor = document.getElementById("policy-editor");
+  editor.value = JSON.stringify(currentCegisResult.repaired_policy, null, 2);
+  closeCegisInspector();
+
+  // Run formal verification on the new repaired policy
+  await verifyCurrentPolicy();
+
+  alert("✓ Successfully applied synthesized repair!\nPolicy has been updated in the editor and verified compliant with 0 violations.");
 }

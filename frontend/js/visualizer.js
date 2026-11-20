@@ -124,6 +124,40 @@ function initVisualizer(containerId = "cy-container") {
         }
       },
       {
+        selector: "edge.diff-added",
+        style: {
+          "line-color": "#10b981",
+          "target-arrow-color": "#10b981",
+          "width": 3.5,
+          "line-style": "solid",
+          "color": "#6ee7b7",
+          "font-weight": "bold",
+          "label": "data(label)"
+        }
+      },
+      {
+        selector: "edge.diff-removed",
+        style: {
+          "line-color": "#f43f5e",
+          "target-arrow-color": "#f43f5e",
+          "width": 3,
+          "line-style": "dashed",
+          "line-dash-pattern": [6, 3],
+          "color": "#fca5a5",
+          "opacity": 0.85,
+          "label": "data(label)"
+        }
+      },
+      {
+        selector: "node.diff-added-node",
+        style: {
+          "border-color": "#38bdf8",
+          "border-width": 3,
+          "background-color": "#0e7490",
+          "color": "#e0f2fe"
+        }
+      },
+      {
         selector: ".dimmed",
         style: {
           "opacity": 0.2
@@ -610,3 +644,73 @@ function exportGraphImage() {
   }
 }
 
+
+// ==========================================
+// Day 22: Visual Graph Diff Renderer (CEGIS)
+// ==========================================
+
+function copyElement(el) {
+  return JSON.parse(JSON.stringify(el));
+}
+
+function renderGraphDiff(originalElements, repairedElements, patches = []) {
+  if (!cy) {
+    initVisualizer("cy-container");
+  }
+  if (!cy) return;
+
+  const diffElements = [];
+  const origNodeIds = new Set();
+  const origEdgeMap = new Map();
+  const removedRuleIds = new Set();
+
+  patches.forEach(p => {
+    (p.rules_to_remove || []).forEach(rId => removedRuleIds.add(rId));
+  });
+
+  // 1. Process original nodes and mark removed edges
+  (originalElements || []).forEach(el => {
+    if (el.group === "nodes") {
+      origNodeIds.add(el.data.id);
+      diffElements.push(copyElement(el));
+    } else if (el.group === "edges") {
+      const edgeCopy = copyElement(el);
+      const rId = edgeCopy.data.rule_id;
+      if (removedRuleIds.has(rId)) {
+        edgeCopy.classes = (edgeCopy.classes || "") + " diff-removed";
+        edgeCopy.data.label = "- " + (edgeCopy.data.label || "PRUNED");
+      }
+      origEdgeMap.set(edgeCopy.data.id, edgeCopy);
+      diffElements.push(edgeCopy);
+    }
+  });
+
+  // 2. Process repaired nodes and mark newly added edges
+  const repEdgeIds = new Set();
+  (repairedElements || []).forEach(el => {
+    if (el.group === "nodes") {
+      if (!origNodeIds.has(el.data.id)) {
+        const nodeCopy = copyElement(el);
+        nodeCopy.classes = (nodeCopy.classes || "") + " diff-added-node";
+        diffElements.push(nodeCopy);
+      }
+    } else if (el.group === "edges") {
+      repEdgeIds.add(el.data.id);
+      if (!origEdgeMap.has(el.data.id)) {
+        const edgeCopy = copyElement(el);
+        edgeCopy.classes = (edgeCopy.classes || "") + " diff-added";
+        edgeCopy.data.label = "+ " + (edgeCopy.data.label || "ADDED");
+        diffElements.push(edgeCopy);
+      }
+    }
+  });
+
+  cy.elements().remove();
+  cy.add(diffElements);
+
+  if (nodesLocked) {
+    cy.nodes().lock();
+  }
+
+  applyCurrentLayout(false);
+}

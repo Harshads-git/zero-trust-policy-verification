@@ -84,9 +84,10 @@
               </select>
             </div>
             <textarea id="policy-editor" class="code-editor" spellcheck="false" placeholder="Enter Zero Trust Policy JSON here..."></textarea>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
               <button id="btn-verify" class="btn btn-primary" style="flex: 1;" onclick="verifyCurrentPolicy()">Run Formal Verification</button>
               <button id="btn-verify-smt" class="btn btn-smt" style="flex: 1;" onclick="verifyPolicyWithSMT()">Run Z3 SMT & Risk</button>
+              <button id="btn-cegis-repair" class="btn btn-cegis" style="flex: 1;" onclick="runCegisAutoRepair()">1-Click CEGIS Repair</button>
               <button id="btn-save-db" class="btn" onclick="savePolicyToDatabase()">Save to DB</button>
             </div>
           </div>
@@ -182,6 +183,52 @@
                   <div id="smt-risk-trajectories-container">
                     <!-- Rendered dynamically -->
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CEGIS Self-Healing & Visual Graph Diff Inspector -->
+            <div id="cegis-inspector-container" class="cegis-inspector-box" style="display: none; margin-top: 16px;">
+              <div class="cegis-inspector-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="cegis-inspector-heading">CEGIS Self-Healing Policy Synthesizer</span>
+                  <span class="badge badge-cegis" id="cegis-status-badge">CONVERGED</span>
+                  <span class="badge" id="cegis-rounds-badge" style="background:#0284c7; color:#fff;">Round 1</span>
+                  <span class="badge" id="cegis-cost-badge" style="background:#334155; color:#38bdf8;">GED: 0.0</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-primary" id="btn-apply-cegis" onclick="applySynthesizedRepairToEditor()">Apply Repair (1-Click)</button>
+                  <button class="btn btn-sm" onclick="closeCegisInspector()">Close</button>
+                </div>
+              </div>
+              <div class="cegis-inspector-body">
+                <!-- Visual Graph Diff Mode Switcher -->
+                <div class="cegis-view-controls" style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+                  <span style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Graph View Mode:</span>
+                  <button class="btn btn-sm active" id="btn-view-diff" onclick="switchGraphView('diff')">Visual Graph Diff (+ / &minus;)</button>
+                  <button class="btn btn-sm" id="btn-view-repaired" onclick="switchGraphView('repaired')">Synthesized Repaired Model</button>
+                  <button class="btn btn-sm" id="btn-view-original" onclick="switchGraphView('original')">Original Flawed Model</button>
+                  <div class="diff-legend" style="margin-left: auto; display: flex; gap: 10px; font-size: 11px;">
+                    <span style="color: #10b981; font-weight: 600;">+ Green: Added Transitions</span>
+                    <span style="color: #f43f5e; font-weight: 600;">&minus; Red Dashed: Pruned Flaws</span>
+                    <span style="color: #38bdf8; font-weight: 600;">&bull; Cyan: Interposed Checkpoints</span>
+                  </div>
+                </div>
+
+                <!-- CEGIS Iteration Trace & Graph Edit Distance -->
+                <div style="margin-bottom: 14px;">
+                  <h4 style="font-size: 12px; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Inductive Synthesis Iteration Trace (Proof of Convergence)
+                  </h4>
+                  <div id="cegis-iteration-trace-container"></div>
+                </div>
+
+                <!-- RFC 6902 JSON Patch Document -->
+                <div>
+                  <h4 style="font-size: 12px; color: #a5b4fc; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Synthesized RFC 6902 JSON Patch Document (GitOps Delta)
+                  </h4>
+                  <pre id="cegis-rfc6902-code" class="code-editor" style="height: 120px; font-size: 11px; padding: 8px; overflow-y: auto;"></pre>
                 </div>
               </div>
             </div>
