@@ -368,9 +368,16 @@ class PolicySynthesizer:
                     target_rule = r
                     break
 
+        if not target_rule and violation.witness_path and len(violation.witness_path) >= 2:
+            src, tgt = violation.witness_path[-2], violation.witness_path[-1]
+            for r in policy.rules:
+                if r.source == src and r.target == tgt:
+                    target_rule = r
+                    break
+
         if not target_rule:
             for r in policy.rules:
-                if r.target == "ACCESS_GRANTED":
+                if r.target == "ACCESS_GRANTED" and r.source != "DEVICE_VERIFIED":
                     target_rule = r
                     break
 
@@ -388,7 +395,7 @@ class PolicySynthesizer:
                 source="DEVICE_VERIFIED",
                 target=target_rule.target,
                 action=target_rule.action or "grant",
-                condition=target_rule.condition,
+                condition=target_rule.condition or "role == 'user'",
                 description=f"Synthesized: grant access from verified compliant device"
             )
             return GraphSurgeryPatch(
@@ -492,10 +499,44 @@ class PolicySynthesizer:
         """
         target_rule_id = violation.rule_id
         target_rule = None
-        for r in policy.rules:
-            if r.rule_id == target_rule_id:
-                target_rule = r
-                break
+        first_rule = None
+
+        if target_rule_id:
+            for r in policy.rules:
+                if r.rule_id == target_rule_id:
+                    target_rule = r
+                    break
+        elif violation.source_state:
+            source = violation.source_state
+            seen_actions = {}
+            for r in policy.rules:
+                if r.source == source:
+                    act = (r.action or "").strip()
+                    if act in seen_actions:
+                        first_rule = seen_actions[act]
+                        target_rule = r
+                        break
+                    seen_actions[act] = r
+
+        if target_rule and first_rule:
+            m1 = copy.deepcopy(first_rule)
+            m2 = copy.deepcopy(target_rule)
+            c1 = m1.condition or ""
+            c2 = m2.condition or ""
+            m1.condition = (c1 + " AND role != 'admin'").strip(" AND ")
+            m2.condition = (c2 + " AND role == 'admin'").strip(" AND ")
+            m1.description = "Synthesized: disambiguate rule conflict with negated guard"
+            m2.description = "Synthesized: disambiguate rule conflict with specialized claim guard"
+
+            return GraphSurgeryPatch(
+                op_type=PatchOpType.TIGHTEN_GUARD,
+                target_rule_id=target_rule.rule_id,
+                affected_states=[target_rule.source, target_rule.target],
+                description="Tighten guard conditions on conflicting rules",
+                violation_addressed=violation.type.value,
+                rules_to_modify=[m1, m2],
+                edit_distance_cost=1.0
+            )
 
         if target_rule:
             modified_rule = copy.deepcopy(target_rule)

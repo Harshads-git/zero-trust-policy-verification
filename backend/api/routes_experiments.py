@@ -13,6 +13,14 @@ import math
 import random
 from backend.models.policy import ZeroTrustPolicy, PolicyRule
 from backend.core.verifier import ZeroTrustVerificationEngine
+from backend.core.cegis_benchmark import (
+    SynthesisBenchmarkRequest,
+    run_synthesis_benchmark_suite,
+    calculate_synthesis_percentiles,
+    generate_synthetic_flawed_policy,
+    format_synthesis_latex_table,
+    format_synthesis_markdown_table
+)
 
 router = APIRouter(prefix="/experiments", tags=["Empirical Evaluation"])
 verifier = ZeroTrustVerificationEngine()
@@ -225,3 +233,13 @@ def run_advanced_benchmark(request: Optional[AdvancedBenchmarkRequest] = None) -
         "latex_table": format_latex_table(results),
         "markdown_table": format_markdown_table(results)
     }
+
+
+@router.post("/synthesis-benchmark", summary="Run empirical CEGIS synthesis scalability & optimality benchmark")
+def run_synthesis_benchmark(request: Optional[SynthesisBenchmarkRequest] = None) -> Dict[str, Any]:
+    """
+    Evaluates CEGIS automated policy synthesis performance, convergence latency percentiles (p50, p90, p95, p99),
+    convergence iterations, throughput, and Graph Edit Distance optimality ratios across synthetic flawed policies.
+    """
+    req = request or SynthesisBenchmarkRequest()
+    return run_synthesis_benchmark_suite(batch_sizes=req.batch_sizes, max_iterations=req.max_iterations)
