@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 import time
 
-from backend.api import policy_router, experiments_router, cloud_router
+from backend.api import policy_router, experiments_router, cloud_router, threat_router
 from backend.security import RateLimitMiddleware
 
 # Configure clean logging format
@@ -72,6 +72,7 @@ async def audit_and_timing_middleware(request: Request, call_next):
 app.include_router(policy_router, prefix="/api")
 app.include_router(experiments_router, prefix="/api")
 app.include_router(cloud_router, prefix="/api")
+app.include_router(threat_router, prefix="/api")
 
 
 @app.get("/health", tags=["System"])
