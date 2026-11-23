@@ -45,13 +45,7 @@ class AttackGraphSimulator:
         start_time = time.perf_counter()
 
         # Build FSM representation
-        fsm = FiniteStateMachine(
-            states=policy.get_all_states(),
-            initial_state=policy.initial_state,
-            terminal_states=policy.terminal_states
-        )
-        for r in policy.rules:
-            fsm.add_transition(r.source, r.target, r.action, r.condition)
+        fsm = FiniteStateMachine.from_policy(policy)
 
         compromised = request.compromised_node
         if compromised not in fsm.Q:
