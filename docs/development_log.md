@@ -944,7 +944,7 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 #### 4. Git Commits for Day 23
 - `f31f210` - `feat(benchmark): implement CEGIS synthesis scalability benchmark, optimality evaluator, and LaTeX exporter`
 - `bbf68c2` - `test(benchmark): add test suite for CEGIS synthesis benchmarks, percentile metrics, and LaTeX export`
-- `docs: add Day 23 CEGIS synthesis scalability benchmarks, LaTeX table, and Sprint 5 wrap-up engineering log`
+- `0e33e73` - `docs: add Day 23 CEGIS synthesis scalability benchmarks, LaTeX table, and Sprint 5 wrap-up engineering log`
 
 #### 5. Reflections & Next Steps for Day 24 (Sprint 6 Kickoff)
 - *Reflection*: Achieving 100% synthesis convergence in under 4ms proves that formal CEGIS methods are practical for production zero-trust admission controllers.
@@ -952,7 +952,57 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 
 ---
 
-*(Days 24 through 30 are documented in subsequent log entries.)*
+### DAY 24: Red-Team Attack Graph & Lateral Movement Simulator (Sprint 6 Kickoff)
+**Date**: October 2, 2026  
+**Objective**: Model adversarial threat actors within enterprise access control automata, compute forward reachability closures and blast-radius metrics ($0.0 - 1.0$), enumerate step-by-step exploit trajectories to designated Crown Jewels, compute graph choke points (articulation bottlenecks) with 100% single-point-of-defense cut-sets, and expose REST simulation endpoints.
+
+#### 1. Tasks Executed
+- [x] Defined Red-Team Threat Modeling Schemas (`backend/models/threat.py`):
+  - `AttackerCapability`: Enumerated threat actor profiles (`STOLEN_CREDENTIALS`, `UNPATCHED_CVE`, `COMPROMISED_ENDPOINT`, `SESSION_HIJACK`, `PRIVILEGE_ESCALATION`, `LATERAL_MOVEMENT`).
+  - `ExploitDifficulty`: Multi-tier edge traversal barrier scoring (`TRIVIAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL_BARRIER`).
+  - `ThreatSimulationRequest`: Pydantic payload supporting inline/stored policies, initial compromised node, target crown jewels, and maximum exploit hops.
+  - `AttackExploitPath` & `AttackExploitStep`: Structured exploit trajectory tracking hop sequences, step difficulty, cumulative risk, and required architectural bypasses (`missing_device_inspection`, `unauthenticated_access_jump`).
+  - `ChokePointAnalysis`: Quantifies bottleneck interception ratios and flags critical single-points-of-defense.
+  - `ThreatSimulationResult`: Full empirical telemetry output containing blast radius percentage, normalized score ($0.0 - 1.0$), severity classification, and prescriptive Zero Trust containment advisories.
+- [x] Engineered Attack Graph Simulator Core (`backend/core/threat_simulator.py`):
+  - **Forward Attacker Reachability Closure**:
+    Executes BFS graph traversal originating from an arbitrary compromised node $q_{\text{comp}} \in Q$ to compute the full reachable attack boundary $\mathcal{R}(q_{\text{comp}})$.
+  - **Blast Radius Mathematical Formulation**:
+    $$\text{Blast Radius Score} = \frac{|\mathcal{R}(q_{\text{comp}})|}{|Q|}, \quad \text{Blast Radius Percentage} = \frac{|\mathcal{R}(q_{\text{comp}})|}{|Q|} \times 100\%$$
+  - **Crown Jewel Exploit Trajectory Tracing**:
+    Locates all simple paths from the compromised node to designated high-value target assets (e.g., `ACCESS_GRANTED`, `PROD_DATABASE`), evaluates edge conditions, and sorts paths by hop count and cumulative risk.
+  - **Graph Choke Point & Articulation Cut-Set Analysis**:
+    Computes intermediate node occurrence across all exploit trajectories:
+    $$\text{InterceptionRatio}(v) = \frac{|\{\pi \in \Pi_{\text{exploit}} \mid v \in \pi\}|}{|\Pi_{\text{exploit}}|}$$
+    Identifies nodes where $\text{InterceptionRatio}(v) = 1.0$ as **Critical Single Points of Defense**, where placing a Zero Trust Policy Enforcement Point (PEP) severs 100% of attack paths.
+  - **Prescriptive Containment Advisories**:
+    Synthesizes immediate remediation steps: credential invalidation, PEP deployment at choke points, crown jewel microsegmentation, and authorization zone isolation.
+- [x] Exposed REST Simulation Endpoints (`backend/api/routes_threat.py`):
+  - `POST /api/threat/simulate`: Executes red-team lateral movement simulation against inline policy payloads with sanitization.
+  - `POST /api/threat/{policy_id}/simulate`: Executes threat simulation against stored policies by ID.
+  - Mounted `threat_router` in `backend/main.py` under `/api`.
+- [x] Developed Comprehensive Threat Test Suite (`backend/tests/test_threat_simulator.py`):
+  - 7 unit & integration tests validating initial compromise reachability, terminal isolated node zero-blast-radius containment, critical single-point-of-defense choke point isolation (`SECURITY_GATEWAY`), exploit path difficulty classification, invalid node error handling, and both REST endpoints.
+  - Expanded total test suite to **124 passing tests (100% pass rate)**.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Directed State Machine Traversal vs. Undirected Network Graphs**  
+  *Rationale*: Traditional network vulnerability scanners assume undirected reachability between subnets. However, in Zero Trust Architecture, authorization state transitions are strictly directed and non-reversible (e.g., an attacker reaching `ACCESS_GRANTED` cannot jump backward to arbitrary identity states without valid transitions). Modeling lateral movement as directed automaton traversal prevents false-positive exploit path extraction.
+- **Decision 2: Articulation Choke Point Interception Ratio**  
+  *Rationale*: Security operations teams cannot harden every transition simultaneously. By computing the mathematical interception ratio of intermediate nodes, AxiomTrust pinpoints the exact minimal cut-set where security investments (e.g., hardware tokens, biometric step-up, network microsegmentation) yield maximum threat containment.
+
+#### 3. Git Commits for Day 24
+- `3ec9ecc` - `feat(threat): implement red-team attack graph simulator, lateral movement engine, and blast-radius calculator`
+- `9a390fe` - `test(threat): add test suite for lateral movement simulation, choke point identification, and threat API`
+- `docs: add Day 24 red-team attack graph, lateral movement simulator, and choke point analysis engineering log`
+
+#### 4. Reflections & Next Steps for Day 25
+- *Reflection*: Adding offensive threat simulation gives AxiomTrust dual-perspective authority: it mathematically proves policy safety (blue team) while simultaneously demonstrating adversarial breach impact and choke point containment (red team).
+- *Tomorrow's Goal (Day 25)*: Real-World AWS IAM Policy JSON to FSM Transpiler: Ingest native AWS IAM Statements (`Effect`, `Action`, `Resource`, `Condition`), resolve wildcard actions, and transpile cloud access policies into verifiable Zero Trust state machines.
+
+---
+
+*(Days 25 through 30 are documented in subsequent log entries.)*
 
 
 
