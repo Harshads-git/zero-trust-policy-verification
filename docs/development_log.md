@@ -994,7 +994,7 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 #### 3. Git Commits for Day 24
 - `3ec9ecc` - `feat(threat): implement red-team attack graph simulator, lateral movement engine, and blast-radius calculator`
 - `9a390fe` - `test(threat): add test suite for lateral movement simulation, choke point identification, and threat API`
-- `docs: add Day 24 red-team attack graph, lateral movement simulator, and choke point analysis engineering log`
+- `8d8223b` - `docs: add Day 24 red-team attack graph, lateral movement simulator, and choke point analysis engineering log`
 
 #### 4. Reflections & Next Steps for Day 25
 - *Reflection*: Adding offensive threat simulation gives AxiomTrust dual-perspective authority: it mathematically proves policy safety (blue team) while simultaneously demonstrating adversarial breach impact and choke point containment (red team).
@@ -1002,7 +1002,63 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 
 ---
 
-*(Days 25 through 30 are documented in subsequent log entries.)*
+### DAY 25: Real-World AWS IAM Policy JSON to FSM Transpiler
+**Date**: October 3, 2026  
+**Objective**: Ingest production AWS IAM policy JSON documents, translate native Statement blocks (`Effect`, `Action`, `Resource`, `Condition`) into verifiable Zero Trust state machines, analyze 7 critical AWS IAM privilege escalation vectors, and expose REST transpilation endpoints.
+
+#### 1. Tasks Executed
+- [x] Defined Cloud Policy Transpiler Schemas (`backend/models/transpiler.py`):
+  - `PrivilegeEscalationRisk`: Structured vulnerability report detailing attack vector name, offending IAM actions, risk severity (`CRITICAL`, `HIGH`, `MEDIUM`), technical explanation, and prescriptive AWS IAM remediation.
+  - `AWSIAMTranspileRequest`: Ingests raw IAM JSON documents (as dict or JSON string), custom policy names, and optional immediate verification triggers.
+  - `AWSIAMTranspileResponse`: Complete transpilation output including generated `ZeroTrustPolicy`, statement counts, allowed/denied action inventories, wildcard flags, privilege escalation findings, and optional formal verification reports.
+- [x] Engineered AWS IAM Transpiler Core (`backend/transpiler/aws_iam.py`):
+  - **AWS IAM Statement Parsing**:
+    Normalizes singular or array-based `Action` and `Resource` elements, detecting over-permissive wildcard scopes (`*`, `s3:*`, `iam:*`).
+  - **Condition Block Translation to Guard Predicates**:
+    Parses complex IAM condition operators (`Bool: aws:MultiFactorAuthPresent`, `IpAddress: aws:SourceIp`, `StringEquals: aws:PrincipalTag`) into first-order predicate guards (`auth_method == 'mfa'`, `client_ip == ...`, `device_health == 'compliant'`).
+  - **Zero Trust Lifecycle Mapping**:
+    - Statements with MFA map to `START -> AUTHENTICATED` via `mfa_authenticate`.
+    - Statements with device/IP posture map to `AUTHENTICATED -> DEVICE_VERIFIED`.
+    - Statements with `sts:AssumeRole` create explicit `ROLE_ASSUMED_PRIVILEGED` intermediate states before grant.
+    - Explicit `Deny` statements route directly to `ACCESS_DENIED` sinks from both `START` and `AUTHENTICATED`.
+    - Injects structural session bounds: `ACCESS_GRANTED -> SESSION_EXPIRED` (timeout) and `ACCESS_GRANTED -> REVOKED` (admin revoke).
+  - **7 Critical AWS IAM Privilege Escalation Detectors**:
+    Analyzes action sets against known cloud penetration vectors:
+    1. `IAM_POLICY_VERSION_UPDATE` (`iam:CreatePolicyVersion`, `iam:SetDefaultPolicyVersion`)
+    2. `IAM_ATTACH_ADMIN_POLICY` (`iam:Attach*Policy`)
+    3. `IAM_INLINE_POLICY_CREATION` (`iam:Put*Policy`)
+    4. `IAM_PASS_ROLE_COMPUTE_ESCALATION` (`iam:PassRole` + `ec2:RunInstances` / `lambda:CreateFunction`)
+    5. `STS_ASSUME_ROLE_ELEVATION` (`sts:AssumeRole`)
+    6. `IAM_ADD_USER_TO_GROUP` (`iam:AddUserToGroup`)
+    7. `IAM_UPDATE_ASSUME_ROLE_POLICY` (`iam:UpdateAssumeRolePolicy`)
+  - **Automated Verification Oracle Hook**:
+    Supports `auto_verify=True` to immediately pass the synthesized FSM into `ZeroTrustVerificationEngine`, generating instant NIST SP 800-207 safety compliance reports.
+- [x] Exposed REST Transpiler Endpoints (`backend/api/routes_transpiler.py`):
+  - `POST /api/transpile/aws-iam`: Ingests raw AWS IAM JSON documents and outputs transpiled FSM with escalation analysis.
+  - `POST /api/transpile/aws-iam/verify`: Transpiles and immediately executes formal model checking.
+  - Mounted `transpiler_router` in `backend/main.py`.
+- [x] Developed Comprehensive Transpiler Test Suite (`backend/tests/test_aws_iam_transpiler.py`):
+  - 9 unit and integration tests verifying standard S3 MFA policies, wildcard admin policies with privilege escalation detection, `iam:PassRole` + compute combination detection, explicit Deny routing, AssumeRole chains, auto-verification, API contracts, and malformed JSON error handling.
+  - Expanded total test suite to **133 passing tests (100% pass rate)**.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Direct FSM Compilation vs. Static Regex Linters**  
+  *Rationale*: Existing IAM security tools (e.g., Parliament, Checkov) use static AST pattern matching. While helpful, they cannot prove dynamic reachability or multi-hop lateral movement across chained roles. Compiling AWS IAM policies into formal DFAs allows AxiomTrust to verify global graph safety invariants ($\mathcal{O}(|Q| + |\delta|)$), detect bypasses, and calculate adversarial blast radius using our existing formal verification engine.
+- **Decision 2: Co-Action Combination Matching for Privilege Escalation**  
+  *Rationale*: Some IAM actions (like `iam:PassRole`) are harmless in isolation but become critical privilege escalation vectors when combined with compute provisioning actions (like `ec2:RunInstances` or `lambda:CreateFunction`). The transpiler implements co-action correlation rules (`match_mode="passrole_combo"`) to flag lethal authorization combinations while minimizing false positives on benign role passing.
+
+#### 3. Git Commits for Day 25
+- `530fc12` - `feat(transpiler): implement AWS IAM policy JSON to Zero Trust FSM transpiler`
+- `dc4ccdb` - `test(transpiler): add test suite for AWS IAM transpilation, privilege escalation, and API contracts`
+- `docs: add Day 25 AWS IAM transpiler, privilege escalation detection, and engineering log`
+
+#### 4. Reflections & Next Steps for Day 26
+- *Reflection*: The AWS IAM transpiler bridges formal academic automata theory with enterprise cloud operations, allowing cloud security architects to verify native IAM policies without rewriting them in proprietary formats.
+- *Tomorrow's Goal (Day 26)*: Open Policy Agent (OPA) Rego Exporter & Transpiler: Compile verified AxiomTrust FSM policies into production OPA `.rego` files for Kubernetes admission controllers and Envoy sidecar service meshes.
+
+---
+
+*(Days 26 through 30 are documented in subsequent log entries.)*
 
 
 
