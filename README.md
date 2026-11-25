@@ -8,7 +8,7 @@
 [![Risk Engine: NIST Tenet 6](https://img.shields.io/badge/Risk%20Engine-Continuous%20Adaptive-green.svg)](backend/core/risk_engine.py)
 [![Zero Trust Standard](https://img.shields.io/badge/NIST%20SP%20800--207-Zero%20Trust%20Compliant-red.svg)](docs/capstone_project_report.md)
 [![AWS Free Tier](https://img.shields.io/badge/AWS-100%25%20Free%20Tier%20Compliant-FF9900.svg?logo=amazon-aws&logoColor=white)](infrastructure/)
-[![Tests](https://img.shields.io/badge/pytest-133%20passed%20(100%25)-success.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/pytest-141%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
@@ -116,6 +116,7 @@ For full mathematical proofs, see [docs/capstone_project_report.md](docs/capston
 | **Benchmarking** | Empirical Percentiles | Scalability testing up to $N = 1000$ rules ($p_{50}, p_{90}, p_{95}, p_{99}$), LaTeX table export |
 | **Threat Modeling** | Red-Team Adversary Simulator | Lateral movement attack graphs, blast radius score ($0.0 - 1.0$), choke point / articulation cut analysis |
 | **Cloud Interoperability** | AWS IAM Policy Transpiler | Ingests native AWS IAM JSON statements, maps conditions to guards, detects 7 privilege escalation vectors |
+| **Policy-as-Code** | OPA Rego Compiler & Exporter | Compiles verified FSMs into production Open Policy Agent (OPA) Rego for Kubernetes Gatekeeper & Envoy |
 
 ---
 
@@ -272,7 +273,7 @@ python run_demo.py --serve
 
 ---
 
-## 8. Automated Test Suite (133 Tests)
+## 8. Automated Test Suite (141 Tests)
 
 Execute the full automated test suite using `pytest`:
 
@@ -301,7 +302,8 @@ python -m pytest backend/tests -v
 | `test_synthesis_benchmark.py` | CEGIS synthesis scalability, percentiles, optimality, and LaTeX export | 5 |
 | `test_threat_simulator.py` | Red-team lateral movement, blast radius scoring, choke points, threat API | 7 |
 | `test_aws_iam_transpiler.py` | AWS IAM policy transpilation, wildcard analysis, privilege escalation detection | 9 |
-| **Total** | **Comprehensive Full-Stack Test Coverage** | **133 (100% Pass)** |
+| `test_opa_rego_transpiler.py` | OPA Rego compilation, transition guards, Gatekeeper & Envoy bindings | 8 |
+| **Total** | **Comprehensive Full-Stack Test Coverage** | **141 (100% Pass)** |
 
 ---
 

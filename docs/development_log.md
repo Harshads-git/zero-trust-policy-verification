@@ -1050,7 +1050,7 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 #### 3. Git Commits for Day 25
 - `530fc12` - `feat(transpiler): implement AWS IAM policy JSON to Zero Trust FSM transpiler`
 - `dc4ccdb` - `test(transpiler): add test suite for AWS IAM transpilation, privilege escalation, and API contracts`
-- `docs: add Day 25 AWS IAM transpiler, privilege escalation detection, and engineering log`
+- `f383986` - `docs: add Day 25 AWS IAM transpiler, privilege escalation detection, and engineering log`
 
 #### 4. Reflections & Next Steps for Day 26
 - *Reflection*: The AWS IAM transpiler bridges formal academic automata theory with enterprise cloud operations, allowing cloud security architects to verify native IAM policies without rewriting them in proprietary formats.
@@ -1058,7 +1058,54 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 
 ---
 
-*(Days 26 through 30 are documented in subsequent log entries.)*
+### DAY 26: Open Policy Agent (OPA) Rego Compiler & Policy Exporter
+**Date**: October 4, 2026  
+**Objective**: Compile formally verified Zero Trust Finite State Machines into standard, production-grade Open Policy Agent (OPA) Rego code, supporting Kubernetes admission controllers (Gatekeeper) and microservice service meshes (Envoy ext_authz).
+
+#### 1. Tasks Executed
+- [x] Defined Policy-as-Code Exporter Schemas (`backend/models/transpiler.py`):
+  - `OPARegoExportRequest`: Input options supporting inline policies, custom package namespaces (default `axiomtrust.authz`), strict Zero Trust invariant enforcement toggles, explainable violation diagnostics flags, and framework bindings (`general`, `kubernetes_gatekeeper`, `envoy_proxy`).
+  - `OPARegoExportResponse`: Compilation output capturing generated `.rego` source code, compiled rule counts, modeled state inventories, terminal state classifications, and compiler status.
+- [x] Engineered OPA Rego Compiler Core (`backend/transpiler/opa_rego.py`):
+  - **NIST SP 800-207 Default-Deny Architecture**:
+    Automatically generates `default allow := false` and `default allow_action := false`, formalizing the zero-trust principle that access is forbidden unless explicitly authorized by valid state trajectories.
+  - **Primary Decision Logic (`allow`)**:
+    Encodes composite authorization requirements: valid FSM transition path, non-expired session token (`input.session_duration <= max_session_seconds`), non-revoked credential status, multi-factor identity verification, and compliant device posture.
+  - **FSM Guard Condition Translation**:
+    Translates transition guard conditions (`auth_method == 'mfa'`, `device_health == 'compliant'`, `role == 'admin'`, `risk <= 20`) into clean, native Rego boolean clauses.
+  - **Directed State Transition Rules**:
+    Synthesizes discrete `valid_transition if { input.current_state == ...; input.action == ...; input.target_state == ... }` rule blocks for every policy transition.
+  - **Explainable Denial Diagnostics (`violations` set)**:
+    Constructs an audit-ready `violations contains ...` diagnostic set, enabling SIEM and observability tools to immediately pinpoint whether a denied request failed due to missing MFA, non-compliant device posture, unauthorized role, session timeout, or invalid FSM transition.
+  - **Cloud-Native Framework Bindings**:
+    - **Kubernetes Gatekeeper**: Emits `violation[{"msg": msg}] if { not allow; ... }` for Kubernetes pod/admission enforcement.
+    - **Envoy Proxy `ext_authz`**: Emits standard Envoy external authorization JSON responses with HTTP headers and status payloads.
+- [x] Exposed REST OPA Rego Export Endpoints (`backend/api/routes_transpiler.py`):
+  - `POST /api/transpile/opa-rego`: Compiles inline policy definitions into OPA Rego code.
+  - `GET /api/transpile/{policy_id}/opa-rego`: Compiles and retrieves OPA Rego code for stored policies.
+  - `GET /api/transpile/{policy_id}/opa-rego/download`: Direct raw `.rego` file download endpoint with `Content-Disposition: attachment`.
+- [x] Developed Comprehensive Rego Compiler Test Suite (`backend/tests/test_opa_rego_transpiler.py`):
+  - 8 unit and integration tests covering standard FSM compilation, custom namespaces, condition parsing, Gatekeeper and Envoy bindings, inline and stored policy endpoints, and file download streaming.
+  - Expanded total test suite to **141 passing tests (100% pass rate)**.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Declarative Rego Compilation vs. Dynamic Runtime Evaluation**  
+  *Rationale*: While AxiomTrust's Python engine provides deep formal verification and CEGIS synthesis, running Python in production Kubernetes admission controllers or high-throughput Envoy sidecars introduces unacceptable latency. Compiling verified state machines into native OPA Rego allows organizations to verify policies centrally in CI/CD, and deploy sub-millisecond compiled rules to edge proxies.
+- **Decision 2: Native Explainable Diagnostics (`violations` set)**  
+  *Rationale*: When a security policy blocks a legitimate developer or service, a generic "Access Denied" error causes operational friction. By compiling explainable diagnostic rules (`violations contains ...`), AxiomTrust provides actionable root-cause diagnostics directly inside OPA evaluation responses.
+
+#### 3. Git Commits for Day 26
+- `d960938` - `feat(opa): implement Open Policy Agent (OPA) Rego compiler and policy exporter`
+- `9e8a12e` - `test(opa): add test suite for OPA Rego generation, rule translation, and export endpoints`
+- `docs: add Day 26 OPA Rego transpiler, Gatekeeper export, and engineering log`
+
+#### 4. Reflections & Next Steps for Day 27
+- *Reflection*: The OPA Rego compiler completes the Policy-as-Code pipeline: policies can be designed as FSMs, verified with Z3 SMT, repaired with CEGIS, and deployed to production Kubernetes clusters as standard `.rego` files.
+- *Tomorrow's Goal (Day 27)*: Threat Simulation UI & Blast Radius Radar: Interactive adversary simulation mode in the web dashboard, 1-click node compromise, animated blast radius wavefront in Cytoscape.js, and visual choke-point indicators (Sprint 6 Wrap-Up).
+
+---
+
+*(Days 27 through 30 are documented in subsequent log entries.)*
 
 
 
