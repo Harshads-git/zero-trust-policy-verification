@@ -41,3 +41,26 @@ class AWSIAMTranspileResponse(BaseModel):
     mfa_enforced: bool
     transpilation_notes: List[str]
     verification_report: Optional[Dict[str, Any]] = None
+
+
+class OPARegoExportRequest(BaseModel):
+    """Request payload for exporting a verified FSM policy to Open Policy Agent (OPA) Rego."""
+    policy: Optional[ZeroTrustPolicy] = Field(default=None, description="Inline Zero Trust policy to compile")
+    package_name: str = Field(default="axiomtrust.authz", description="OPA package namespace")
+    enforce_strict_zero_trust: bool = Field(default=True, description="Enforce NIST SP 800-207 MFA and device posture in Rego rules")
+    include_audit_violations: bool = Field(default=True, description="Generate violation reason sets for explainable denial audit logs")
+    target_framework: str = Field(default="general", description="Target framework: 'general', 'kubernetes_gatekeeper', or 'envoy_proxy'")
+
+
+class OPARegoExportResponse(BaseModel):
+    """Result of compiling a Zero Trust policy into production OPA Rego code."""
+    policy_id: str
+    policy_name: str
+    package_name: str
+    rego_code: str
+    rules_compiled: int
+    states_modeled: List[str]
+    terminal_states: List[str]
+    target_framework: str
+    generated_at: float
+    validation_status: str = "COMPILED"
