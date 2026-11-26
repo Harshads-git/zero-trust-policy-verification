@@ -196,6 +196,75 @@ function initVisualizer(containerId = "cy-container") {
           "opacity": 1.0,
           "z-index": 1000
         }
+      },
+      {
+        selector: "node.threat-compromised-node",
+        style: {
+          "background-color": "#991b1b",
+          "border-color": "#ef4444",
+          "border-width": 4,
+          "color": "#ffffff",
+          "font-weight": "bold",
+          "opacity": 1.0,
+          "z-index": 1002
+        }
+      },
+      {
+        selector: "node.threat-reachable-node",
+        style: {
+          "background-color": "#78350f",
+          "border-color": "#f59e0b",
+          "border-width": 2.5,
+          "color": "#fef3c7",
+          "opacity": 1.0,
+          "z-index": 900
+        }
+      },
+      {
+        selector: "node.threat-crown-jewel",
+        style: {
+          "background-color": "#831843",
+          "border-color": "#f43f5e",
+          "border-width": 4,
+          "border-style": "double",
+          "color": "#ffe4e6",
+          "font-weight": "bold",
+          "opacity": 1.0,
+          "z-index": 1001
+        }
+      },
+      {
+        selector: "node.threat-choke-point",
+        style: {
+          "background-color": "#083344",
+          "border-color": "#06b6d4",
+          "border-width": 4,
+          "color": "#cffafe",
+          "font-weight": "bold",
+          "opacity": 1.0,
+          "z-index": 1003
+        }
+      },
+      {
+        selector: "edge.threat-exploit-edge",
+        style: {
+          "line-color": "#ef4444",
+          "target-arrow-color": "#ef4444",
+          "width": 4,
+          "opacity": 1.0,
+          "z-index": 990,
+          "arrow-scale": 1.3
+        }
+      },
+      {
+        selector: "edge.threat-reachable-edge",
+        style: {
+          "line-color": "#f59e0b",
+          "target-arrow-color": "#f59e0b",
+          "width": 2.5,
+          "opacity": 0.85,
+          "z-index": 850
+        }
       }
     ],
     layout: {
@@ -286,8 +355,9 @@ function inspectNode(node) {
       </div>
       <div class="inspector-field">
         <span class="inspector-field-label">Quick Navigation</span>
-        <span class="inspector-field-val">
+        <span class="inspector-field-val" style="display: flex; gap: 6px;">
           <button class="btn btn-sm" onclick="focusStateNode('${node.id()}')">Center on Node</button>
+          <button class="btn btn-sm btn-threat" onclick="runThreatSimulation('${node.id()}')">Simulate Breach Here</button>
         </span>
       </div>
     </div>
@@ -713,4 +783,92 @@ function renderGraphDiff(originalElements, repairedElements, patches = []) {
   }
 
   applyCurrentLayout(false);
+}
+
+/**
+ * Renders Red-Team Threat Simulation & Lateral Movement on the active Cytoscape graph.
+ * Highlights the compromised breach node, lateral reachability closure, compromised crown jewels,
+ * critical choke points (single-point-of-defense), and exploit trajectory edges.
+ */
+function renderThreatSimulation(threatData) {
+  if (!cy || !threatData) return;
+
+  clearThreatSimulationView();
+
+  const compNodeId = threatData.compromised_node;
+  const reachableSet = new Set(threatData.attacker_reachable_states || []);
+  const crownJewelSet = new Set(threatData.compromised_crown_jewels || []);
+  
+  // Extract critical choke points
+  const criticalChokePoints = new Set(
+    (threatData.choke_points || [])
+      .filter(cp => cp.is_critical_single_point_of_defense)
+      .map(cp => cp.node)
+  );
+
+  // Extract all exploit edges from the step trajectories
+  const exploitEdgeKeys = new Set();
+  (threatData.exploit_paths || []).forEach(ep => {
+    (ep.steps || []).forEach(step => {
+      exploitEdgeKeys.add(`${step.source}->${step.target}`);
+    });
+  });
+
+  cy.batch(() => {
+    // 1. Nodes styling
+    cy.nodes().forEach(node => {
+      const id = node.id();
+      if (id === compNodeId) {
+        node.addClass("threat-compromised-node");
+      } else if (criticalChokePoints.has(id)) {
+        node.addClass("threat-choke-point");
+      } else if (crownJewelSet.has(id)) {
+        node.addClass("threat-crown-jewel");
+      } else if (reachableSet.has(id)) {
+        node.addClass("threat-reachable-node");
+      } else {
+        node.addClass("dimmed");
+      }
+    });
+
+    // 2. Edges styling
+    cy.edges().forEach(edge => {
+      const src = edge.source().id();
+      const tgt = edge.target().id();
+      const key = `${src}->${tgt}`;
+
+      if (exploitEdgeKeys.has(key)) {
+        edge.addClass("threat-exploit-edge");
+      } else if (reachableSet.has(src) && reachableSet.has(tgt)) {
+        edge.addClass("threat-reachable-edge");
+      } else {
+        edge.addClass("dimmed");
+      }
+    });
+  });
+
+  // Focus view on the threat-impacted graph component
+  const relevantElements = cy.elements().not(".dimmed");
+  if (relevantElements.length > 0) {
+    cy.animate({
+      fit: {
+        eles: relevantElements,
+        padding: 40
+      },
+      duration: 500
+    });
+  }
+}
+
+/**
+ * Clears all threat simulation highlight classes and restores normal graph appearance.
+ */
+function clearThreatSimulationView() {
+  if (!cy) return;
+  cy.batch(() => {
+    cy.elements().removeClass(
+      "threat-compromised-node threat-reachable-node threat-crown-jewel " +
+      "threat-choke-point threat-exploit-edge threat-reachable-edge dimmed"
+    );
+  });
 }

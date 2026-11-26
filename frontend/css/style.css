@@ -812,3 +812,121 @@ table.data-table tr:hover {
   color: #94a3b8;
   background-color: rgba(30, 41, 59, 0.6);
 }
+
+/* Red-Team Threat Simulation & Blast Radius Radar Styling */
+.btn-threat {
+  background-color: #991b1b;
+  color: #ffffff;
+  border: 1px solid #ef4444;
+}
+
+.btn-threat:hover {
+  background-color: #b91c1c;
+}
+
+.badge-threat {
+  background-color: #450a0a;
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+}
+
+.badge-choke-point {
+  background-color: #083344;
+  color: #67e8f9;
+  border: 1px solid #06b6d4;
+  font-weight: 600;
+}
+
+.threat-inspector-box {
+  background-color: #0c0d14;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-size: 12px;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2);
+}
+
+.threat-inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  padding-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.threat-inspector-heading {
+  font-weight: 700;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.threat-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.threat-stat-card {
+  background-color: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.threat-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.threat-stat-value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.threat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.threat-table th, .threat-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.35);
+}
+
+.threat-table th {
+  color: #cbd5e1;
+  background-color: rgba(30, 41, 59, 0.7);
+}
+
+.threat-table tr:hover {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.threat-recommendations-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.threat-recommendations-list li {
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background-color: rgba(15, 23, 42, 0.6);
+  border-left: 3px solid #10b981;
+  border-radius: 0 4px 4px 0;
+  font-size: 11px;
+  color: #e2e8f0;
+}

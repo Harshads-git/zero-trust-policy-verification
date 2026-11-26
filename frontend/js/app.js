@@ -891,3 +891,259 @@ async function applySynthesizedRepairToEditor() {
 
   alert("✓ Successfully applied synthesized repair!\nPolicy has been updated in the editor and verified compliant with 0 violations.");
 }
+
+/* ==========================================================================
+   Red-Team Adversary Threat Simulation & Blast Radius Radar Controller
+   ========================================================================== */
+
+let currentThreatResult = null;
+
+async function runThreatSimulation(compromisedNode = null) {
+  const editor = document.getElementById("policy-editor");
+  const rawText = editor.value.trim();
+
+  let policy;
+  try {
+    policy = JSON.parse(rawText);
+  } catch (err) {
+    alert("JSON Parse Error: Please correct policy syntax before running threat simulation.\n" + err.message);
+    return;
+  }
+
+  const btn = document.getElementById("btn-threat-sim");
+  const originalText = btn ? btn.textContent : "Simulate Adversary";
+  if (btn) {
+    btn.textContent = "Simulating Threat...";
+    btn.disabled = true;
+  }
+
+  // Determine initial pivot node
+  let startNode = compromisedNode;
+  if (!startNode) {
+    startNode = policy.initial_state || "START";
+  }
+
+  try {
+    const payload = {
+      policy: policy,
+      compromised_node: startNode,
+      crown_jewels: ["ACCESS_GRANTED", "PROD_DATABASE", "ADMIN_CONSOLE"],
+      max_exploit_depth: 8
+    };
+
+    const res = await fetch("/api/threat/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `Server returned HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    currentThreatResult = data;
+
+    // Display threat inspector drawer
+    const container = document.getElementById("threat-inspector-container");
+    if (container) {
+      container.style.display = "block";
+    }
+
+    // Populate pivot node dropdown
+    populateThreatNodeSelector(policy, data.compromised_node);
+
+    // Update badges
+    const sevBadge = document.getElementById("threat-severity-badge");
+    if (sevBadge) {
+      sevBadge.textContent = `${data.blast_radius_severity} SEVERITY`;
+      sevBadge.className = `badge ${data.blast_radius_severity === "CRITICAL" ? "badge-critical" : "badge-threat"}`;
+    }
+
+    const blastBadge = document.getElementById("threat-blast-badge");
+    if (blastBadge) {
+      blastBadge.textContent = `Blast Radius: ${data.blast_radius_percentage}%`;
+    }
+
+    const compBadge = document.getElementById("threat-compromised-badge");
+    if (compBadge) {
+      compBadge.textContent = `Breach: ${data.compromised_node}`;
+    }
+
+    // Update KPI stats
+    const statNode = document.getElementById("threat-stat-node");
+    if (statNode) statNode.textContent = data.compromised_node;
+
+    const statBlast = document.getElementById("threat-stat-blast");
+    if (statBlast) statBlast.textContent = `${data.blast_radius_percentage}% (${data.blast_radius_score})`;
+
+    const statJewels = document.getElementById("threat-stat-jewels");
+    if (statJewels) statJewels.textContent = (data.compromised_crown_jewels || []).length;
+
+    const criticalCpCount = (data.choke_points || []).filter(cp => cp.is_critical_single_point_of_defense).length;
+    const statCps = document.getElementById("threat-stat-chokepoints");
+    if (statCps) statCps.textContent = `${criticalCpCount} critical / ${(data.choke_points || []).length} total`;
+
+    // Render Exploit Paths Table
+    renderThreatExploitPaths(data.exploit_paths || []);
+
+    // Render Choke Points Radar
+    renderThreatChokePoints(data.choke_points || []);
+
+    // Render Recommendations
+    renderThreatRecommendations(data.containment_recommendations || []);
+
+    // Trigger Cytoscape visualizer update
+    if (typeof renderThreatSimulation === "function") {
+      renderThreatSimulation(data);
+    }
+
+  } catch (err) {
+    alert("Threat Simulation Failed: " + err.message);
+  } finally {
+    if (btn) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+}
+
+function populateThreatNodeSelector(policy, selectedNode) {
+  const select = document.getElementById("threat-node-select");
+  if (!select) return;
+
+  const states = new Set();
+  if (policy.initial_state) states.add(policy.initial_state);
+  (policy.rules || []).forEach(r => {
+    if (r.source) states.add(r.source);
+    if (r.target) states.add(r.target);
+  });
+
+  const sortedStates = Array.from(states).sort();
+  select.innerHTML = sortedStates
+    .map(s => `<option value="${s}" ${s === selectedNode ? "selected" : ""}>Pivot: ${s}</option>`)
+    .join("");
+}
+
+function onThreatCompromisedNodeChange(nodeId) {
+  if (nodeId) {
+    runThreatSimulation(nodeId);
+  }
+}
+
+function renderThreatExploitPaths(paths) {
+  const container = document.getElementById("threat-exploit-paths-container");
+  if (!container) return;
+
+  if (paths.length === 0) {
+    container.innerHTML = '<div style="color: #64748b; font-size: 11px; padding: 6px 0;">No lateral movement trajectories reach designated Crown Jewels.</div>';
+    return;
+  }
+
+  let html = `
+    <table class="threat-table">
+      <thead>
+        <tr>
+          <th>Target Jewel</th>
+          <th>Hops</th>
+          <th>Barrier Difficulty</th>
+          <th>Trajectory Steps</th>
+          <th>Risk</th>
+          <th>Bypasses</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  paths.forEach(p => {
+    const trajectory = (p.path || []).join(" &rarr; ");
+    const diffBadge = p.overall_difficulty === "TRIVIAL" 
+      ? '<span class="badge badge-critical" style="font-size:10px;">TRIVIAL (EXPLOITABLE)</span>'
+      : `<span class="badge" style="background:#334155; font-size:10px;">${p.overall_difficulty}</span>`;
+    
+    const bypasses = (p.required_bypasses || []).length > 0 
+      ? p.required_bypasses.map(b => `<span class="badge" style="background:#7f1d1d; color:#fca5a5; font-size:9px;">${b}</span>`).join(" ")
+      : '<span style="color:#64748b;">None</span>';
+
+    html += `
+      <tr>
+        <td><strong style="color: #f43f5e;">${escapeHtml(p.target_crown_jewel)}</strong></td>
+        <td>${p.hop_count}</td>
+        <td>${diffBadge}</td>
+        <td><code style="color: #cbd5e1;">${trajectory}</code></td>
+        <td style="color: #f59e0b; font-weight: 600;">${p.cumulative_risk}</td>
+        <td>${bypasses}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderThreatChokePoints(chokePoints) {
+  const container = document.getElementById("threat-chokepoints-container");
+  if (!container) return;
+
+  if (chokePoints.length === 0) {
+    container.innerHTML = '<div style="color: #64748b; font-size: 11px; padding: 6px 0;">No intermediate choke points identified on exploit trajectories.</div>';
+    return;
+  }
+
+  let html = `
+    <table class="threat-table">
+      <thead>
+        <tr>
+          <th>Choke Point Node</th>
+          <th>Interception Ratio</th>
+          <th>Defense Status</th>
+          <th>Prescriptive Defense Strategy</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  chokePoints.forEach(cp => {
+    const isSinglePoint = cp.is_critical_single_point_of_defense;
+    const statusBadge = isSinglePoint
+      ? '<span class="badge badge-choke-point">100% SINGLE POINT OF DEFENSE</span>'
+      : `<span class="badge" style="background:#1e293b; color:#94a3b8;">${(cp.interception_ratio * 100).toFixed(0)}% Interception</span>`;
+
+    html += `
+      <tr>
+        <td><strong style="color: #38bdf8;">${escapeHtml(cp.node)}</strong></td>
+        <td><strong>${(cp.interception_ratio * 100).toFixed(1)}%</strong> (${cp.paths_intercepted}/${cp.total_exploit_paths} paths)</td>
+        <td>${statusBadge}</td>
+        <td style="color: #cbd5e1; font-size: 11px;">${escapeHtml(cp.defense_strategy)}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderThreatRecommendations(recs) {
+  const list = document.getElementById("threat-recommendations-list");
+  if (!list) return;
+
+  if (recs.length === 0) {
+    list.innerHTML = '<li style="color: #64748b;">No immediate containment actions required.</li>';
+    return;
+  }
+
+  list.innerHTML = recs
+    .map(r => `<li>${escapeHtml(r)}</li>`)
+    .join("");
+}
+
+function closeThreatInspector() {
+  const container = document.getElementById("threat-inspector-container");
+  if (container) {
+    container.style.display = "none";
+  }
+  if (typeof clearThreatSimulationView === "function") {
+    clearThreatSimulationView();
+  }
+}

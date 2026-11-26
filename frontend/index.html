@@ -88,6 +88,7 @@
               <button id="btn-verify" class="btn btn-primary" style="flex: 1;" onclick="verifyCurrentPolicy()">Run Formal Verification</button>
               <button id="btn-verify-smt" class="btn btn-smt" style="flex: 1;" onclick="verifyPolicyWithSMT()">Run Z3 SMT & Risk</button>
               <button id="btn-cegis-repair" class="btn btn-cegis" style="flex: 1;" onclick="runCegisAutoRepair()">1-Click CEGIS Repair</button>
+              <button id="btn-threat-sim" class="btn btn-threat" style="flex: 1;" onclick="runThreatSimulation()">Simulate Adversary</button>
               <button id="btn-save-db" class="btn" onclick="savePolicyToDatabase()">Save to DB</button>
             </div>
           </div>
@@ -229,6 +230,71 @@
                     Synthesized RFC 6902 JSON Patch Document (GitOps Delta)
                   </h4>
                   <pre id="cegis-rfc6902-code" class="code-editor" style="height: 120px; font-size: 11px; padding: 8px; overflow-y: auto;"></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Red-Team Adversary Simulation & Blast Radius Radar -->
+            <div id="threat-inspector-container" class="threat-inspector-box" style="display: none; margin-top: 16px;">
+              <div class="threat-inspector-header">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span class="threat-inspector-heading">Red-Team Adversary Simulation & Blast Radius Radar</span>
+                  <span class="badge badge-threat" id="threat-severity-badge">HIGH SEVERITY</span>
+                  <span class="badge" id="threat-blast-badge" style="background:#7f1d1d; color:#fca5a5;">Blast Radius: 0%</span>
+                  <span class="badge" id="threat-compromised-badge" style="background:#475569; color:#f8fafc;">Compromised: START</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <label style="font-size: 11px; color: #94a3b8; font-weight: 600;">Pivot Node:</label>
+                  <select id="threat-node-select" class="btn btn-sm" onchange="onThreatCompromisedNodeChange(this.value)" style="background: #1e293b; color: #f8fafc; border: 1px solid #dc2626;">
+                    <!-- Dynamically populated with policy states -->
+                  </select>
+                  <button class="btn btn-sm" onclick="closeThreatInspector()">Close</button>
+                </div>
+              </div>
+
+              <div class="threat-inspector-body">
+                <!-- Threat KPI Stats Grid -->
+                <div class="threat-stats-grid">
+                  <div class="threat-stat-card">
+                    <div class="threat-stat-label">Initial Breach Node</div>
+                    <div id="threat-stat-node" class="threat-stat-value" style="color: #ef4444;">-</div>
+                  </div>
+                  <div class="threat-stat-card">
+                    <div class="threat-stat-label">Lateral Blast Radius</div>
+                    <div id="threat-stat-blast" class="threat-stat-value" style="color: #f97316;">0.0%</div>
+                  </div>
+                  <div class="threat-stat-card">
+                    <div class="threat-stat-label">Crown Jewels Reachable</div>
+                    <div id="threat-stat-jewels" class="threat-stat-value" style="color: #f43f5e;">0</div>
+                  </div>
+                  <div class="threat-stat-card">
+                    <div class="threat-stat-label">Critical Choke Points</div>
+                    <div id="threat-stat-chokepoints" class="threat-stat-value" style="color: #06b6d4;">0</div>
+                  </div>
+                </div>
+
+                <!-- Crown Jewels & Exploit Paths -->
+                <div style="margin-top: 14px; margin-bottom: 14px;">
+                  <h4 style="font-size: 12px; color: #f87171; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Adversarial Lateral Movement Exploit Paths
+                  </h4>
+                  <div id="threat-exploit-paths-container" style="overflow-x: auto;"></div>
+                </div>
+
+                <!-- Choke Points Radar & Articulation Cut-Sets -->
+                <div style="margin-bottom: 14px;">
+                  <h4 style="font-size: 12px; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Graph Choke Points (Single-Point-of-Defense Cut-Sets)
+                  </h4>
+                  <div id="threat-chokepoints-container" style="overflow-x: auto;"></div>
+                </div>
+
+                <!-- Prescriptive Zero Trust Containment Advisories -->
+                <div>
+                  <h4 style="font-size: 12px; color: #34d399; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Prescriptive Zero Trust Containment Advisories
+                  </h4>
+                  <ul id="threat-recommendations-list" class="threat-recommendations-list"></ul>
                 </div>
               </div>
             </div>
