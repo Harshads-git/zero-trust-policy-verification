@@ -8,7 +8,7 @@
 [![Risk Engine: NIST Tenet 6](https://img.shields.io/badge/Risk%20Engine-Continuous%20Adaptive-green.svg)](backend/core/risk_engine.py)
 [![Zero Trust Standard](https://img.shields.io/badge/NIST%20SP%20800--207-Zero%20Trust%20Compliant-red.svg)](docs/capstone_project_report.md)
 [![AWS Free Tier](https://img.shields.io/badge/AWS-100%25%20Free%20Tier%20Compliant-FF9900.svg?logo=amazon-aws&logoColor=white)](infrastructure/)
-[![Tests](https://img.shields.io/badge/pytest-141%20passed%20(100%25)-success.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/pytest-142%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
@@ -117,6 +117,7 @@ For full mathematical proofs, see [docs/capstone_project_report.md](docs/capston
 | **Threat Modeling** | Red-Team Adversary Simulator | Lateral movement attack graphs, blast radius score ($0.0 - 1.0$), choke point / articulation cut analysis |
 | **Cloud Interoperability** | AWS IAM Policy Transpiler | Ingests native AWS IAM JSON statements, maps conditions to guards, detects 7 privilege escalation vectors |
 | **Policy-as-Code** | OPA Rego Compiler & Exporter | Compiles verified FSMs into production Open Policy Agent (OPA) Rego for Kubernetes Gatekeeper & Envoy |
+| **Visual Threat Ops** | Threat Simulation UI & Blast Radius Radar | Interactive adversary pivot selection, animated lateral movement paths, choke point cut-set radar, and containment recommendations |
 
 ---
 
@@ -273,7 +274,7 @@ python run_demo.py --serve
 
 ---
 
-## 8. Automated Test Suite (141 Tests)
+## 8. Automated Test Suite (142 Tests)
 
 Execute the full automated test suite using `pytest`:
 
@@ -289,7 +290,7 @@ python -m pytest backend/tests -v
 | `test_zt_invariants.py` | NIST SP 800-207 safety invariants (Auth, Device, PoLP, Revocation) | 8 |
 | `test_verifier.py` | Ground-truth verification across all 7 flaw categories | 11 |
 | `test_verification_report.py` | Risk score formula (0-100), posture classification, remediation plans | 4 |
-| `test_api.py` | FastAPI REST endpoints, timing middleware, SMT, risk, & CEGIS UI contracts | 14 |
+| `test_api.py` | FastAPI REST endpoints, timing middleware, SMT, risk, CEGIS, & threat simulation UI contracts | 15 |
 | `test_cloud.py` | CloudWatch offline queue buffering, S3 backup fallback, cloud routes | 8 |
 | `test_storage_consistency.py` | SQLite 5 B-Tree indexes, DynamoDB single-table keys, migration parity | 5 |
 | `test_security.py` | JSON bomb depth ceiling, XSS sanitization, null bytes, rate limiter | 8 |
@@ -303,7 +304,7 @@ python -m pytest backend/tests -v
 | `test_threat_simulator.py` | Red-team lateral movement, blast radius scoring, choke points, threat API | 7 |
 | `test_aws_iam_transpiler.py` | AWS IAM policy transpilation, wildcard analysis, privilege escalation detection | 9 |
 | `test_opa_rego_transpiler.py` | OPA Rego compilation, transition guards, Gatekeeper & Envoy bindings | 8 |
-| **Total** | **Comprehensive Full-Stack Test Coverage** | **141 (100% Pass)** |
+| **Total** | **Comprehensive Full-Stack Test Coverage** | **142 (100% Pass)** |
 
 ---
 

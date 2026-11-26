@@ -1105,7 +1105,81 @@ Sprint 5 transitioned AxiomTrust from a purely diagnostic verification engine in
 
 ---
 
-*(Days 27 through 30 are documented in subsequent log entries.)*
+### DAY 27: Threat Simulation UI & Blast Radius Radar (Sprint 6 Wrap-Up)
+**Date**: October 5, 2026  
+**Objective**: Build an interactive Red-Team Threat Simulation and Blast Radius Radar dashboard in the frontend web UI, allowing security analysts to select compromised pivot nodes, visualize directed lateral movement wavefronts in Cytoscape.js, inspect choke point cut-set ratios, and review defense-in-depth containment recommendations.
+
+#### 1. Tasks Executed
+- [x] Engineered Threat Simulation UI Controls (`frontend/index.html`):
+  - Added primary navigation button `#btn-threat-sim` ("Simulate Adversary") with crimson warning badge.
+  - Added comprehensive Threat Simulation Drawer `#threat-inspector-container` featuring:
+    - Header controls with live status indicators and close button.
+    - Compromised Node Pivot selector dropdown (`#threat-node-select`).
+    - High-density Threat Stats Grid displaying Blast Radius Score ($0.0 - 1.0$), Exploit Trajectory count, and Identified Choke Point count.
+    - Tabular Exploit Paths view (`#threat-exploit-paths-container`) detailing crown jewel targets, path lengths, and full state-transition sequence steps.
+    - Choke Point Cut-Set Radar (`#threat-choke-points-container`) ranking critical articulation nodes by interception ratio and reachability reduction metrics.
+    - Actionable Containment Recommendations list (`#threat-recommendations-container`) with prescriptive firewall, PEP, and credential revocation steps.
+- [x] Implemented Threat Simulation Stylesheet (`frontend/css/style.css`):
+  - `.btn-threat`: High-visibility crimson button with dynamic hover gradients and focus rings.
+  - `.badge-threat`: Glowing red pulse badge highlighting active adversary simulation mode.
+  - `.badge-choke-point`: Deep purple badge indicating single points of defense ($100\%$ interception ratio).
+  - `.threat-inspector-box`: Glassmorphic sliding drawer styled with amber/crimson security accents.
+  - `.threat-stats-grid`: Multi-column metric display for real-time blast radius inspection.
+  - `.threat-table`: Clean monospace table formatting for exploit trajectories and articulation nodes.
+  - `.threat-recommendations-list`: Visual checklists with warning/success indicators for defense-in-depth mitigations.
+- [x] Upgraded Cytoscape.js Directed Visualizer (`frontend/js/visualizer.js`):
+  - Added dedicated threat simulation element styles:
+    - `node.threat-compromised-node`: Flashing crimson node with crosshair cursor, indicating ground zero of breach.
+    - `node.threat-crown-jewel`: Bold golden border and amber glow, highlighting targeted high-value assets (`ACCESS_GRANTED`, `ADMIN_CONSOLE`).
+    - `node.threat-choke-point`: Vibrant violet border and label badge, identifying vital articulation cut-set nodes.
+    - `node.threat-reachable-node`: Amber dashed border highlighting all nodes within the adversary's lateral blast radius.
+    - `edge.threat-exploit-edge`: Thick crimson directed arrow marking active exploit trajectories.
+    - `edge.threat-reachable-edge`: Dashed amber line marking secondary lateral reachability.
+    - Dimming class `.threat-dimmed`: Opacity reduction ($0.15$) for uncompromised, out-of-scope graph components.
+  - Built `renderThreatSimulation(threatData)`: Coordinates element styling in a single `cy.batch()` pass, computes bounding boxes, and animates viewport camera focus (`cy.animate({ fit: ... })`).
+  - Built `clearThreatSimulationView()`: Restores standard baseline graph classes and camera framing.
+  - Enhanced Node Inspector: Injected an instant "Simulate Breach Here" trigger button allowing security teams to pivot the attack simulation directly from any selected graph node.
+- [x] Built Frontend Threat Controller (`frontend/js/app.js`):
+  - `runThreatSimulation(compromisedNodeId)`: Dispatches `POST /api/threat/simulate` with designated pivot node, updates UI state, and triggers graph animation.
+  - `populateThreatNodeSelector(states, selectedNode)`: Dynamically populates the pivot selector dropdown with all graph states.
+  - `onThreatCompromisedNodeChange()`: Re-simulates lateral movement on dropdown change without page refresh.
+  - `renderThreatExploitPaths(exploitPaths)`: Renders tabular breakdown of adversary routes, steps, and target states.
+  - `renderThreatChokePoints(chokePoints)`: Sorts and displays critical cut-set nodes with interception ratios.
+  - `renderThreatRecommendations(recommendations)`: Formats actionable PEP enforcement and credential revocation advice.
+  - `closeThreatInspector()`: Cleans up visual highlights and closes drawer.
+- [x] Comprehensive Full-Stack Verification & Testing (`backend/tests/test_api.py`):
+  - Added `test_frontend_threat_ui_assets_served()` verifying HTML drawer presence, CSS style definitions, visualizer Cytoscape classes, and app controller handlers.
+  - Validated full test suite across all 19 test modules: **142 passed tests (100% pass rate)** in 2.23s.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: Batch-Applied Visual Classing (`cy.batch()`) for Complex Topologies**  
+  *Rationale*: In dense enterprise policy graphs with hundreds of states, updating Cytoscape node and edge styles individually triggers multiple redraw cycles, causing visual stuttering. Wrapping all threat classification and opacity updates inside `cy.batch()` ensures a single hardware-accelerated render tick, preserving 60 FPS UI responsiveness even when animating large blast radiuses.
+- **Decision 2: Dual Entrypoints for Breach Simulation (Inspector + Drawer)**  
+  *Rationale*: Security engineers analyze policies using two distinct workflows: (1) top-down scanning (running threat simulation on the default entry node), and (2) exploratory auditing (clicking an unusual intermediate node and asking "What if this specific service account is compromised?"). Providing both the global drawer selector and an in-situ "Simulate Breach Here" button in the node inspector supports both audit workflows seamlessly.
+
+#### 3. Sprint 6 Retrospective & Milestone Wrap-Up (Days 24–27)
+Sprint 6 expanded AxiomTrust from an analytical blue-team verifier into a bidirectional offensive/defensive Zero Trust platform:
+1. **Day 24 (Offensive Threat Modeling Engine)**: Engineered `ThreatSimulator` calculating directed lateral movement graphs, crown-jewel reachability, blast radius index ($0.0 - 1.0$), and articulation choke-point cut sets.
+2. **Day 25 (AWS IAM Transpiler)**: Built real-world AWS IAM policy JSON transpiler, mapping IAM statement conditions to first-order predicates and identifying 7 critical cloud privilege escalation vectors (`iam:PassRole`, `iam:CreatePolicyVersion`, etc.).
+3. **Day 26 (OPA Rego Compiler & Exporter)**: Implemented policy-as-code compiler exporting verified FSMs into standard Open Policy Agent (OPA) Rego with default-deny semantics, explainable violation diagnostics, and Kubernetes Gatekeeper/Envoy ext_authz bindings.
+4. **Day 27 (Threat Simulation UI & Blast Radius Radar)**: Delivered interactive frontend drawer, animated Cytoscape.js attack paths, visual choke-point indicators, and containment checklists.
+
+#### 4. Git Commits for Day 27
+- `47b2955` - `feat(ui): add red-team threat simulation drawer, blast-radius visualizer, and choke-point radar`
+- `df316ef` - `test(ui-integration): verify threat simulation UI assets and adversary modeling contracts`
+- `docs: add Day 27 threat simulation UI, blast radius radar, and Sprint 6 wrap-up engineering log`
+
+#### 5. Reflections & Next Steps for Sprint 7 (Days 28–30)
+- *Reflection*: Sprint 6 has elevated AxiomTrust into an end-to-end cloud-native platform bridging Theory of Computation, Cloud IAM, Policy-as-Code, and Red-Team Adversary Emulation.
+- *Upcoming Sprint 7 Roadmap (Final Capstone Sprint)*:
+  - **Day 28**: Shift-Left DevSecOps CLI & SARIF Exporter (GitHub Code Scanning & GitLab SAST integration).
+  - **Day 29**: GitHub Actions Automated Policy Verification CI/CD Workflow & Security Gate.
+  - **Day 30**: 30-Day Master Milestone Wrap-Up, Capstone Defense Presentation & Final Release Artifacts.
+
+---
+
+*(Days 28 through 30 are documented in subsequent log entries.)*
+
 
 
 
