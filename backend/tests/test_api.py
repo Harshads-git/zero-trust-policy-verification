@@ -301,3 +301,40 @@ def test_frontend_cegis_ui_assets_served():
     assert "runCegisAutoRepair" in res_js.text
     assert "applySynthesizedRepairToEditor" in res_js.text
     assert "switchGraphView" in res_js.text
+
+
+def test_frontend_threat_ui_assets_served():
+    """Day 27: Verify frontend serves threat simulation & blast radius radar assets."""
+    # Check HTML contains Threat Simulation controls
+    res_html = client.get("/")
+    assert res_html.status_code == 200
+    assert "btn-threat-sim" in res_html.text
+    assert "threat-inspector-container" in res_html.text
+    assert "threat-node-select" in res_html.text
+    assert "threat-exploit-paths-container" in res_html.text
+    assert "Simulate Adversary" in res_html.text
+
+    # Check CSS contains Threat Simulation styles
+    res_css = client.get("/static/css/style.css")
+    assert res_css.status_code == 200
+    assert ".btn-threat" in res_css.text
+    assert ".threat-inspector-box" in res_css.text
+    assert ".badge-choke-point" in res_css.text
+    assert ".threat-stats-grid" in res_css.text
+
+    # Check visualizer JS contains threat modeling functions and styles
+    res_viz = client.get("/static/js/visualizer.js")
+    assert res_viz.status_code == 200
+    assert "renderThreatSimulation" in res_viz.text
+    assert "clearThreatSimulationView" in res_viz.text
+    assert "threat-compromised-node" in res_viz.text
+    assert "threat-choke-point" in res_viz.text
+
+    # Check app JS contains Threat Simulation controller functions
+    res_js = client.get("/static/js/app.js")
+    assert res_js.status_code == 200
+    assert "runThreatSimulation" in res_js.text
+    assert "populateThreatNodeSelector" in res_js.text
+    assert "renderThreatChokePoints" in res_js.text
+    assert "closeThreatInspector" in res_js.text
+
