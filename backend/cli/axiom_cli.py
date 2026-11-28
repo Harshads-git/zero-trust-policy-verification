@@ -216,9 +216,9 @@ def run_transpile_iam_command(args: argparse.Namespace) -> int:
     )
 
     print(f"{TerminalColors.BOLD}AWS IAM Transpilation Results:{TerminalColors.RESET}")
-    print(f"  FSM Policy ID: {resp.policy.policy_id}")
+    print(f"  FSM Policy ID: {resp.transpiled_policy.policy_id}")
     print(f"  Allowed Actions: {len(resp.allowed_actions)} | Denied Actions: {len(resp.denied_actions)}")
-    print(f"  Wildcard Detected: {resp.has_wildcard_actions} | Multi-Action Statements: {resp.has_multi_action_statements}")
+    print(f"  Wildcard Detected: {resp.has_wildcard_actions} | Statements: {resp.statements_count}")
     
     if resp.privilege_escalation_risks:
         print(f"  {TerminalColors.RED}Privilege Escalation Risks ({len(resp.privilege_escalation_risks)}):{TerminalColors.RESET}")
@@ -231,14 +231,16 @@ def run_transpile_iam_command(args: argparse.Namespace) -> int:
         out_p = Path(args.output).resolve()
         out_p.parent.mkdir(parents=True, exist_ok=True)
         with open(out_p, "w", encoding="utf-8") as f:
-            json.dump(resp.policy.model_dump(), f, indent=2)
+            json.dump(resp.transpiled_policy.model_dump(), f, indent=2)
         print(f"{TerminalColors.GREEN}[+] Transpiled FSM policy saved to: {out_p}{TerminalColors.RESET}")
 
     if args.verify and resp.verification_report:
         v_report = resp.verification_report
-        status_color = TerminalColors.GREEN if v_report.valid else TerminalColors.RED
-        print(f"  Verification Status: {status_color}{'PASSED' if v_report.valid else 'VIOLATIONS DETECTED'}{TerminalColors.RESET} (Risk: {v_report.risk_score}/100)")
-        return 1 if not v_report.valid else 0
+        is_valid = v_report.get("valid", False) if isinstance(v_report, dict) else v_report.valid
+        risk_score = v_report.get("risk_score", 0) if isinstance(v_report, dict) else v_report.risk_score
+        status_color = TerminalColors.GREEN if is_valid else TerminalColors.RED
+        print(f"  Verification Status: {status_color}{'PASSED' if is_valid else 'VIOLATIONS DETECTED'}{TerminalColors.RESET} (Risk: {risk_score}/100)")
+        return 1 if not is_valid else 0
 
     return 0
 
