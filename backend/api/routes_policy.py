@@ -17,6 +17,7 @@ from backend.core.risk_engine import ContinuousRiskEngine
 from backend.core.fsm import FiniteStateMachine
 from backend.core.synthesizer import PolicySynthesizer, SynthesisResult
 from backend.core.cegis_loop import CEGISEngine, CEGISResult
+from backend.exporters.sarif import SARIFExporter
 from backend.storage import get_repository, PolicyRepository
 from backend.cloud import get_cloudwatch_publisher
 from backend.security import PolicySanitizer
@@ -292,3 +293,33 @@ def get_sample_templates() -> Dict[str, Any]:
                 pass
 
     return samples
+
+
+@router.post("/verify/sarif", summary="Verify policy and export report in OASIS SARIF v2.1.0 format")
+def verify_policy_sarif(
+    policy: ZeroTrustPolicy,
+    repo: PolicyRepository = Depends(get_repository)
+) -> Dict[str, Any]:
+    """
+    Evaluates policy invariants and exports full OASIS SARIF v2.1.0 document
+    for GitHub Code Scanning, GitLab SAST, and DevSecOps pipelines.
+    """
+    policy = PolicySanitizer.sanitize_policy(policy)
+    report = verifier.verify(policy)
+    return SARIFExporter.to_sarif_dict([report])
+
+
+@router.get("/{policy_id}/sarif", summary="Retrieve policy verification report in OASIS SARIF v2.1.0 format")
+def get_policy_sarif(
+    policy_id: str,
+    repo: PolicyRepository = Depends(get_repository)
+) -> Dict[str, Any]:
+    """
+    Retrieves stored policy and generates an OASIS SARIF v2.1.0 JSON security report.
+    """
+    policy = repo.get_policy(policy_id)
+    if not policy:
+        raise HTTPException(status_code=404, detail=f"Policy with ID '{policy_id}' not found.")
+    report = verifier.verify(policy)
+    return SARIFExporter.to_sarif_dict([report])
+
