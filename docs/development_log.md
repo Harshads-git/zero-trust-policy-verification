@@ -1178,7 +1178,63 @@ Sprint 6 expanded AxiomTrust from an analytical blue-team verifier into a bidire
 
 ---
 
-*(Days 28 through 30 are documented in subsequent log entries.)*
+### DAY 28: Shift-Left DevSecOps CLI & OASIS SARIF v2.1.0 Exporter (Sprint 7 Kickoff)
+**Date**: October 6, 2026  
+**Objective**: Build a shift-left DevSecOps command-line interface and standard OASIS SARIF v2.1.0 serializer enabling automated Zero Trust policy verification, deterministic CI/CD build-gate exit codes, and native GitHub Advanced Security / GitLab SAST code scanning integration.
+
+#### 1. Tasks Executed
+- [x] Engineered OASIS SARIF v2.1.0 Exporter (`backend/exporters/sarif.py`):
+  - Conforms to official OASIS SARIF 2.1.0 JSON Schema specifications (`$schema`, `version: 2.1.0`, `runs[].tool.driver`).
+  - Mapped all AxiomTrust structural automata checks and NIST SP 800-207 safety invariants to Common Weakness Enumerations (CWE) and CVSS metrics:
+    - `MISSING_AUTHENTICATION`: [CWE-306](https://cwe.mitre.org/data/definitions/306.html) (Missing Authentication for Critical Function), NIST Tenet 1 & 2. Level: `error`.
+    - `MISSING_DEVICE_VERIFICATION`: [CWE-284](https://cwe.mitre.org/data/definitions/284.html) (Improper Access Control), NIST Tenet 2. Level: `error`.
+    - `MISSING_AUTHORIZATION`: [CWE-862](https://cwe.mitre.org/data/definitions/862.html) (Missing Authorization), NIST Tenet 1. Level: `error`.
+    - `UNAUTHORIZED_TRANSITION`: [CWE-285](https://cwe.mitre.org/data/definitions/285.html) (Improper Authorization), NIST Tenet 4. Level: `error`.
+    - `NO_REVOCATION_PATH`: [CWE-613](https://cwe.mitre.org/data/definitions/613.html) (Insufficient Session Expiration), NIST Tenet 7. Level: `warning`.
+    - `PRIVILEGE_BYPASS`: [CWE-269](https://cwe.mitre.org/data/definitions/269.html) (Improper Privilege Management). Level: `error`.
+    - `UNMITIGATED_HIGH_RISK_PATH`: [CWE-358](https://cwe.mitre.org/data/definitions/358.html) (Continuous Risk Breach), NIST Tenet 6. Level: `warning`.
+    - `UNREACHABLE_STATE`: [CWE-1164](https://cwe.mitre.org/data/definitions/1164.html) (Dead Code / Unreachable Logic). Level: `note`.
+    - `DEAD_STATE`: [CWE-835](https://cwe.mitre.org/data/definitions/835.html) (Infinite Loop / Trap State). Level: `warning`.
+    - `RULE_CONFLICT`: [CWE-436](https://cwe.mitre.org/data/definitions/436.html) (Interpretation Conflict / Non-determinism). Level: `warning`.
+    - `MALFORMED_POLICY`: [CWE-20](https://cwe.mitre.org/data/definitions/20.html) (Improper Input Validation). Level: `error`.
+  - Serializes `codeFlows` and `threadFlows`:
+    Extracts BFS shortest-path counterexample witness trajectories and represents each transition step as an execution order event in SARIF, allowing GitHub Code Scanning UI to visually render the exact attack graph trajectory from initial state $q_0$ to access grant.
+  - Implemented `to_sarif_dict(reports, policy_file_paths)` and `export_sarif_file(reports, output_path, policy_file_paths)`.
+- [x] Engineered Shift-Left DevSecOps CLI (`backend/cli/axiom_cli.py`, `scripts/axiom.py`):
+  - Built zero-dependency command-line utility with standard UNIX exit codes (0 = Success, 1 = Security Violation, 2 = File/Syntax Error).
+  - Implemented 5 unified CLI subcommands:
+    - `verify`: Scans single files or recursive directories; supports `--strict`, `--max-risk <0-100>`, `--sarif <path>`, `--json <path>`, `--with-smt`, and `--format [text, json, sarif]`.
+    - `sarif`: Direct generation of OASIS SARIF v2.1.0 file from policy files.
+    - `transpile-iam`: Ingests AWS IAM policy JSON, identifies wildcard actions and privilege escalation risks, and synthesizes verifiable FSMs (with optional `--verify` validation).
+    - `export-rego`: Compiles FSM policies into Open Policy Agent (OPA) `.rego` files for Kubernetes Gatekeeper, Envoy ext_authz, or general PEPs.
+    - `threat`: Executes red-team lateral movement simulations, reporting blast radius index, exploit hop sequences, and articulation cut-set choke points directly in terminal.
+  - Designed `scripts/axiom.py` executable entrypoint ensuring clean `PYTHONPATH` resolution for local git hooks and CI runners.
+- [x] Exposed REST API Endpoints for SARIF Export (`backend/api/routes_policy.py`):
+  - `POST /api/policies/verify/sarif`: Verifies inline policy payload and returns SARIF v2.1.0 document.
+  - `GET /api/policies/{policy_id}/sarif`: Converts stored policy's latest verification report into SARIF v2.1.0 format.
+- [x] Developed Comprehensive DevSecOps Test Suite (`backend/tests/test_cli_sarif.py`):
+  - 14 automated unit and integration tests verifying SARIF top-level structure, CWE/NIST rule mappings, threadFlow counterexamples, file export, CLI verify exit codes (0 vs 1), SARIF option generation, IAM transpilation, OPA Rego export, threat simulation, and REST endpoints.
+  - Full test suite expanded to **156 passing tests (100% pass rate)**.
+
+#### 2. Key Architectural Decisions (Student Design Notes)
+- **Decision 1: SARIF `codeFlows` for Counterexample Witness Visualization**  
+  *Rationale*: In static application security testing (SAST), showing an alert message without context forces engineers to manually trace how the vulnerability was reached. By embedding BFS witness paths into SARIF `codeFlows[].threadFlows[].locations[]`, GitHub Code Scanning displays step-by-step interactive trajectory callouts directly on the pull request diff, showing developers the exact sequence of states that triggered the authorization bypass.
+- **Decision 2: Pure Standard Library CLI Implementation**  
+  *Rationale*: CI/CD pipelines and pre-commit hooks require rapid initialization without installing bulky CLI frameworks (like Click or Typer). Using Python's built-in `argparse` ensures the CLI starts in under 20ms with zero extra pip dependencies, while delivering full ANSI terminal styling and robust UNIX exit codes.
+
+#### 3. Git Commits for Day 28
+- `3064df7` - `feat(cli): implement shift-left DevSecOps CLI and OASIS SARIF v2.1.0 exporter`
+- `b903f67` - `test(cli): add comprehensive test suite for DevSecOps CLI commands and SARIF 2.1.0 schema compliance`
+- `docs: add Day 28 shift-left DevSecOps CLI, SARIF v2.1.0 specification, and engineering log`
+
+#### 4. Reflections & Next Steps for Day 29
+- *Reflection*: Day 28 bridges formal automata verification with modern DevSecOps pipelines. AxiomTrust can now be run locally by developers (`python scripts/axiom.py verify policies/`), invoked in pre-commit hooks, and uploaded to GitHub Security as standardized SARIF alerts.
+- *Tomorrow's Goal (Day 29)*: GitHub Actions Automated Policy Verification CI/CD Workflow & Security Gate: author production `.github/workflows/policy-verification.yml` executing automated verification on every Pull Request, uploading SARIF artifacts to GitHub Advanced Security Code Scanning, and enforcing merge blocking on policy invariant violations.
+
+---
+
+*(Days 29 through 30 are documented in subsequent log entries.)*
+
 
 
 

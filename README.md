@@ -8,7 +8,9 @@
 [![Risk Engine: NIST Tenet 6](https://img.shields.io/badge/Risk%20Engine-Continuous%20Adaptive-green.svg)](backend/core/risk_engine.py)
 [![Zero Trust Standard](https://img.shields.io/badge/NIST%20SP%20800--207-Zero%20Trust%20Compliant-red.svg)](docs/capstone_project_report.md)
 [![AWS Free Tier](https://img.shields.io/badge/AWS-100%25%20Free%20Tier%20Compliant-FF9900.svg?logo=amazon-aws&logoColor=white)](infrastructure/)
-[![Tests](https://img.shields.io/badge/pytest-142%20passed%20(100%25)-success.svg)](backend/tests/)
+[![SARIF v2.1.0](https://img.shields.io/badge/SARIF-OASIS%20v2.1.0%20Compliant-orange.svg)](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)
+[![DevSecOps CLI](https://img.shields.io/badge/DevSecOps%20CLI-Shift--Left%20Gate-success.svg)](scripts/axiom.py)
+[![Tests](https://img.shields.io/badge/pytest-156%20passed%20(100%25)-success.svg)](backend/tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **AxiomTrust** is an academic and production-hardened **Zero Trust Policy Verification Engine** bridging **Theory of Computation (Automata & Formal Methods)**, **Cybersecurity (NIST SP 800-207 Zero Trust Architecture)**, and **Cloud Computing (AWS Free Tier)**. 
@@ -118,6 +120,7 @@ For full mathematical proofs, see [docs/capstone_project_report.md](docs/capston
 | **Cloud Interoperability** | AWS IAM Policy Transpiler | Ingests native AWS IAM JSON statements, maps conditions to guards, detects 7 privilege escalation vectors |
 | **Policy-as-Code** | OPA Rego Compiler & Exporter | Compiles verified FSMs into production Open Policy Agent (OPA) Rego for Kubernetes Gatekeeper & Envoy |
 | **Visual Threat Ops** | Threat Simulation UI & Blast Radius Radar | Interactive adversary pivot selection, animated lateral movement paths, choke point cut-set radar, and containment recommendations |
+| **Shift-Left DevSecOps** | Verification CLI & OASIS SARIF v2.1.0 | Standalone CLI (`scripts/axiom.py`), strict CI/CD gate exit codes, OASIS SARIF v2.1.0 for GitHub Code Scanning & GitLab SAST |
 
 ---
 
@@ -272,9 +275,31 @@ To run the demonstration and automatically boot the web server:
 python run_demo.py --serve
 ```
 
+### 7.1 Shift-Left DevSecOps CLI & OASIS SARIF Exporter
+
+AxiomTrust provides a shift-left command-line interface (`scripts/axiom.py`) for automated policy scanning, local pre-commit hooks, and CI/CD quality gates:
+
+```bash
+# Verify compliant policy directory (returns exit code 0)
+python scripts/axiom.py verify policies/valid/ --strict
+
+# Scan flawed policy with SARIF v2.1.0 output for GitHub Advanced Security
+python scripts/axiom.py verify policies/invalid/ --sarif reports/security-audit.sarif.json
+
+# Transpile AWS IAM policy JSON and detect privilege escalation vectors
+python scripts/axiom.py transpile-iam -f iam_policy.json -o fsm_policy.json --verify
+
+# Compile verified FSM policy to Open Policy Agent (OPA) Rego
+python scripts/axiom.py export-rego -f fsm_policy.json -o policy.rego --framework kubernetes_gatekeeper
+
+# Red-team lateral movement simulation & choke-point analysis
+python scripts/axiom.py threat -f fsm_policy.json --pivot START
+```
+
+
 ---
 
-## 8. Automated Test Suite (142 Tests)
+## 8. Automated Test Suite (156 Tests)
 
 Execute the full automated test suite using `pytest`:
 
@@ -304,7 +329,8 @@ python -m pytest backend/tests -v
 | `test_threat_simulator.py` | Red-team lateral movement, blast radius scoring, choke points, threat API | 7 |
 | `test_aws_iam_transpiler.py` | AWS IAM policy transpilation, wildcard analysis, privilege escalation detection | 9 |
 | `test_opa_rego_transpiler.py` | OPA Rego compilation, transition guards, Gatekeeper & Envoy bindings | 8 |
-| **Total** | **Comprehensive Full-Stack Test Coverage** | **142 (100% Pass)** |
+| `test_cli_sarif.py` | Shift-Left DevSecOps CLI, exit codes, OASIS SARIF v2.1.0 schema, & REST endpoints | 14 |
+| **Total** | **Comprehensive Full-Stack Test Coverage** | **156 (100% Pass)** |
 
 ---
 
